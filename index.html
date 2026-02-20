@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kana Master - 五十音弱點強化版</title>
+    <title>Kana Master - 五十音全面強化版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -63,7 +63,7 @@
             { kana: 'み', romaji: 'mi', row: 'ま行', word: 'みかん', meaning: '橘子', emoji: '🍊', source: '美' },
             { kana: 'む', romaji: 'mu', row: 'ま行', word: 'むし', meaning: '昆蟲', emoji: '🐞', source: '武' },
             { kana: 'め', romaji: 'me', row: 'ま行', word: 'めがね', meaning: '眼鏡', emoji: '👓', source: '女' },
-            { kana: 'も', romaji: 'mo', row: 'ま行', word: 'も目', meaning: '桃子', emoji: '🍑', source: '毛' },
+            { kana: 'も', romaji: 'mo', row: 'ま行', word: 'もも', meaning: '桃子', emoji: '🍑', source: '毛' },
             { kana: 'や', romaji: 'ya', row: 'や行', word: 'やま', meaning: '山', emoji: '⛰️', source: '也' },
             { kana: 'ゆ', romaji: 'yu', row: 'や行', word: 'ゆき', meaning: '雪', emoji: '❄️', source: '由' },
             { kana: 'よ', romaji: 'yo', row: 'や行', word: 'よる', meaning: '夜晚', emoji: '🌃', source: '與' },
@@ -92,7 +92,6 @@
             const [isFlipped, setIsFlipped] = useState(false);
             const [showSource, setShowSource] = useState(true);
             
-            // 弱點清單邏輯
             const [weakList, setWeakList] = useState(() => {
                 const saved = localStorage.getItem('kana_weak_list');
                 return saved ? JSON.parse(saved) : [];
@@ -143,14 +142,13 @@
                     <header className="bg-white border-b px-4 py-2 sticky top-0 z-10 flex justify-between items-center shadow-sm h-14">
                         <div className="flex flex-col">
                             <h1 className="text-lg font-bold text-indigo-600 leading-none">Kana Master</h1>
-                            <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">Focus Mode Ready</span>
+                            <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">Dual-View Memory</span>
                         </div>
                         <div className="flex gap-1">
                             {weakList.length > 0 && view !== 'settings' && (
                                 <button 
                                     onClick={() => generatePracticeSet('weak')}
                                     className="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-colors flex items-center gap-1"
-                                    title="弱點強化模式"
                                 >
                                     <Icon name="zap" size={20} />
                                     <span className="text-xs font-black">{weakList.length}</span>
@@ -174,7 +172,7 @@
                                 </div>
 
                                 <div 
-                                    className={`relative h-[460px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
+                                    className={`relative h-[480px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}
                                     onClick={() => setIsFlipped(!isFlipped)}
                                 >
                                     {/* 正面 */}
@@ -196,21 +194,20 @@
                                         <div className="flex-1 flex flex-col items-center justify-center p-4">
                                             <span className="text-8xl font-black text-slate-800 leading-none">{currentCard.kana}</span>
                                             <div className="mt-4 text-center">
-                                                <p className="text-indigo-600 font-bold text-lg tracking-tight">{currentCard.word}</p>
+                                                <p className="text-indigo-600 font-bold text-xl tracking-tight">{currentCard.word}</p>
                                                 <p className="text-slate-400 text-[11px] font-medium">{currentCard.meaning}</p>
                                             </div>
                                         </div>
-                                        <div className="h-12 flex items-center justify-center text-slate-300 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-slate-50">點擊翻面查看答案</div>
+                                        <div className="h-12 flex items-center justify-center text-slate-300 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-slate-50">點擊翻面查看讀音</div>
                                     </div>
 
-                                    {/* 背面 */}
+                                    {/* 背面：修改重點 - 加入單字日文顯示 */}
                                     <div className={`absolute inset-0 bg-white rounded-[2rem] shadow-lg flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
                                         <div className="h-1/4 flex items-center justify-center bg-slate-50/50 relative">
                                             <span className="text-7xl opacity-30 grayscale">{currentCard.emoji}</span>
-                                            {/* 弱點標記按鈕 */}
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); toggleWeak(currentCard.kana); }}
-                                                className={`absolute top-4 right-4 p-3 rounded-2xl border transition-all ${isWeak ? 'bg-amber-500 border-amber-500 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                                                className={`absolute top-4 right-4 p-3 rounded-2xl border transition-all ${isWeak ? 'bg-amber-500 border-amber-500 text-white shadow-amber-100' : 'bg-white border-slate-200 text-slate-400'}`}
                                             >
                                                 <Icon name="zap" size={20} />
                                             </button>
@@ -223,22 +220,31 @@
                                                 </div>
                                             </div>
                                             
-                                            <div className="inline-flex items-center gap-2 mb-4 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                                                <span className="text-[10px] font-bold text-indigo-400">起源漢字</span>
-                                                <span className="text-lg font-black text-indigo-700">{currentCard.source}</span>
+                                            <div className="flex flex-col items-center gap-2 mb-6">
+                                                {/* 背面單字日文顯示區 */}
+                                                <div className="px-5 py-1.5 bg-indigo-600 rounded-xl shadow-md shadow-indigo-100">
+                                                    <span className="text-white font-black text-xl">{currentCard.word}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Meaning:</span>
+                                                    <span className="text-slate-500 font-black text-base">{currentCard.meaning}</span>
+                                                </div>
                                             </div>
                                             
-                                            <div className="flex flex-col items-center gap-4 mt-2">
-                                                <p className="text-slate-500 font-bold text-sm">{currentCard.meaning}</p>
+                                            <div className="flex items-center gap-6 mt-2">
+                                                <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Origin</span>
+                                                    <span className="text-lg font-black text-slate-600">{currentCard.source}</span>
+                                                </div>
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); speak(currentCard); }}
-                                                    className="bg-indigo-600 text-white p-4 rounded-full shadow-md shadow-indigo-100 active:scale-90 transition-transform"
+                                                    className="bg-indigo-600 text-white p-4 rounded-full shadow-lg shadow-indigo-100 active:scale-90 transition-transform"
                                                 >
                                                     <Icon name="volume-2" size={28} />
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="h-12 flex items-center justify-center text-indigo-200 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-indigo-50">點擊翻面看假名</div>
+                                        <div className="h-12 flex items-center justify-center text-indigo-200 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-indigo-50">點擊翻面回到假名</div>
                                     </div>
                                 </div>
 
@@ -315,12 +321,6 @@
                                 <button onClick={() => generatePracticeSet()} className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-transform flex items-center justify-center gap-2">
                                     <Icon name="play" size={18} /> 開始一般練習
                                 </button>
-                                
-                                {weakList.length > 0 && (
-                                    <button onClick={() => generatePracticeSet('weak')} className="w-full bg-amber-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-amber-100 active:scale-95 transition-transform flex items-center justify-center gap-2">
-                                        <Icon name="zap" size={18} /> 進入弱點強化模式
-                                    </button>
-                                )}
                             </div>
                         )}
                     </main>
