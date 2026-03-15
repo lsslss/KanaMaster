@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日文歌詞學習：淚光閃閃 (修復版)</title>
+    <title>日文歌詞學習：淚光閃閃 (穩定修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
         }
         #youtube-player-container {
             position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
-            left: -1000px; top: -1000px;
+            left: -9999px; top: -9999px;
         }
     </style>
 </head>
@@ -43,7 +43,7 @@
                 <h1 class="text-xl font-bold flex items-center gap-2">
                     <i data-lucide="music"></i> 淚光閃閃 (音樂同步版)
                 </h1>
-                <p id="player-status" class="text-sky-100 text-sm">正在初始化音樂播放器...</p>
+                <p id="player-status" class="text-sky-100 text-sm italic">正在與 YouTube 建立連線...</p>
             </div>
             <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
         </div>
@@ -58,15 +58,15 @@
                     <button id="btn-play-tts" class="bg-white text-sky-600 p-4 rounded-full hover:bg-sky-100 transition-all shadow-sm active:scale-90">
                         <i data-lucide="bot"></i>
                     </button>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">AI 發音</span>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI 發音</span>
                 </div>
 
                 <!-- Actual Song -->
                 <div class="flex flex-col items-center gap-2 bg-sky-50 p-4 rounded-2xl border border-sky-100">
-                    <button id="btn-play-song" class="bg-sky-600 text-white p-4 rounded-full hover:bg-sky-700 transition-all shadow-md active:scale-90">
+                    <button id="btn-play-song" class="bg-sky-600 text-white p-4 rounded-full hover:bg-sky-700 transition-all shadow-md active:scale-90 disabled:bg-slate-300">
                         <i data-lucide="play-circle"></i>
                     </button>
-                    <span class="text-[10px] font-bold text-sky-600 uppercase">原曲演唱</span>
+                    <span class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">原曲演唱</span>
                 </div>
             </div>
 
@@ -74,7 +74,7 @@
             <div class="w-full max-w-xs mb-8 space-y-4">
                 <div class="space-y-1">
                     <div class="flex justify-between text-[10px] text-slate-400 font-bold">
-                        <span>AI 語速 (Speed)</span>
+                        <span>AI 語速 (TTS Speed)</span>
                         <span id="speed-value" class="text-sky-600">0.6x</span>
                     </div>
                     <input type="range" id="speed-control" min="0.3" max="1.5" step="0.1" value="0.6" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
@@ -82,7 +82,7 @@
                 
                 <label class="flex items-center justify-center gap-2 cursor-pointer group">
                     <input type="checkbox" id="sync-mode" class="w-4 h-4 text-sky-600 rounded">
-                    <span class="text-xs text-slate-500 group-hover:text-sky-600 transition-colors">自動跟隨音樂播放 (Sync Mode)</span>
+                    <span class="text-xs text-slate-500 group-hover:text-sky-600 transition-colors">自動跟隨音樂播放 (Sync)</span>
                 </label>
             </div>
 
@@ -118,16 +118,17 @@
         </div>
     </div>
 
-    <!-- Message Toast (Replace Alert) -->
-    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity pointer-events-none text-sm shadow-2xl"></div>
+    <!-- Message Toast -->
+    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none text-sm shadow-2xl z-50"></div>
 
     <script>
-        // YouTube API Configuration
+        // Global variables for YouTube API
         let player;
         let playerReady = false;
 
-        // The API requires the callback function to be on the window object
+        // Force define the ready function early on window
         window.onYouTubeIframeAPIReady = function() {
+            console.log("YouTube API is ready, initializing player...");
             player = new YT.Player('player', {
                 height: '0',
                 width: '0',
@@ -136,7 +137,9 @@
                     'autoplay': 0, 
                     'controls': 0,
                     'playsinline': 1,
-                    'origin': window.location.origin
+                    'enablejsapi': 1,
+                    'iv_load_policy': 3,
+                    'modestbranding': 1
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -147,34 +150,41 @@
         };
 
         function onPlayerReady(event) {
+            console.log("Player Ready");
             playerReady = true;
             document.getElementById('player-status').textContent = '音樂播放器已就緒';
+            document.getElementById('btn-play-song').disabled = false;
             setTimeout(() => {
-                document.getElementById('player-status').textContent = '點擊「演唱」聽取原曲片段';
+                document.getElementById('player-status').textContent = '點擊「原曲演唱」聆聽片段';
             }, 3000);
         }
 
         function onPlayerError(e) {
-            console.error("YouTube Player Error", e);
-            showToast("播放器載入失敗，請確認網路連接。");
+            console.error("YouTube Player Error:", e.data);
+            let errorMsg = "播放器載入失敗";
+            if (e.data === 101 || e.data === 150) errorMsg = "此影片禁止在此網站嵌入播放";
+            if (e.data === 2) errorMsg = "參數設定錯誤";
+            showToast(errorMsg + " (代碼: " + e.data + ")");
+            document.getElementById('player-status').textContent = '載入失敗';
         }
 
-        // Load YouTube API script
+        // Dynamically Load API
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
+        // Data Management
         const lyricsData = [
-            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動。" }] },
+            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動、翻開。" }] },
             { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやいた", meaning: "嘀咕、自言自語。" }] },
-            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中。" }] },
+            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中、胸口。" }] },
             { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励まして", meaning: "鼓勵。" }] },
             { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "完全放晴。" }] },
-            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu あの笑容", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現。" }] },
-            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "お目" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶。" }] },
-            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影。" }] },
-            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "淚水流下的樣子。" }] }
+            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現、想起。" }] },
+            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶、往事。" }] },
+            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影、面容。" }] },
+            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "沖繩方言，眼淚不停流下的樣子。" }] }
         ];
 
         let currentIndex = 0;
@@ -210,7 +220,7 @@
             el.rm.textContent = d.romaji;
             el.cn.textContent = `「${d.chinese}」`;
             el.pg.textContent = `${currentIndex + 1} / ${lyricsData.length}`;
-            el.v.innerHTML = d.vocab.map(v => `<div class="text-sm"><span class="font-bold text-sky-700">${v.word}</span> <span class="text-slate-500">${v.meaning}</span></div>`).join('');
+            el.v.innerHTML = d.vocab.map(v => `<div class="text-sm border-l-2 border-sky-100 pl-2"><span class="font-bold text-sky-700">${v.word}</span> <span class="text-slate-500">${v.meaning}</span></div>`).join('');
             el.dt.innerHTML = lyricsData.map((_, i) => `<div class="h-1.5 rounded-full transition-all ${i === currentIndex ? 'w-8 bg-sky-600' : 'w-2 bg-slate-300'}"></div>`).join('');
             el.prev.disabled = currentIndex === 0;
             el.next.disabled = currentIndex === lyricsData.length - 1;
@@ -227,7 +237,7 @@
 
         function playSong() {
             if (!playerReady || !player) {
-                showToast("播放器尚未準備好，請稍候...");
+                showToast("播放器尚未就緒，請稍候...");
                 return;
             }
             const startTime = lyricsData[currentIndex].start;
@@ -248,36 +258,38 @@
             if (!el.sync.checked || !player || !playerReady) return;
             try {
                 const curr = player.getCurrentTime();
-                let newIdx = 0;
+                let newIdx = -1;
+                // Find the latest start time that is less than current time
                 for (let i = 0; i < lyricsData.length; i++) {
                     if (curr >= lyricsData[i].start) {
                         newIdx = i;
                     }
                 }
-                if (newIdx !== currentIndex) {
+                if (newIdx !== -1 && newIdx !== currentIndex) {
                     updateContent(newIdx);
                 }
             } catch (e) {
-                console.error("Sync error", e);
+                console.warn("Sync logic error", e);
             }
         }
 
         function updateContent(newIdx) {
             if (newIdx === currentIndex) return;
             el.cont.classList.remove('fade-in');
-            void el.cont.offsetWidth; // Reflow
+            void el.cont.offsetWidth; // Force Reflow
             currentIndex = newIdx;
             render();
             el.cont.classList.add('fade-in');
         }
 
+        // Listeners
         el.prev.addEventListener('click', () => updateContent(currentIndex - 1));
         el.next.addEventListener('click', () => updateContent(currentIndex + 1));
         el.tts.addEventListener('click', playTTS);
         el.song.addEventListener('click', playSong);
         el.speed.addEventListener('input', (e) => el.speedVal.textContent = `${e.target.value}x`);
 
-        // Initial setup
+        // Initialize UI
         render();
     </script>
 </body>
