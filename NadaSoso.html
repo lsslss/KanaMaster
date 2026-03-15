@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日文歌詞學習：淚光閃閃 (音樂同步版)</title>
+    <title>日文歌詞學習：淚光閃閃 (修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -24,12 +24,13 @@
         }
         #youtube-player-container {
             position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+            left: -1000px; top: -1000px;
         }
     </style>
 </head>
 <body class="bg-sky-50 min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
 
-    <!-- YouTube Hidden Player -->
+    <!-- YouTube Hidden Player Container -->
     <div id="youtube-player-container">
         <div id="player"></div>
     </div>
@@ -42,7 +43,7 @@
                 <h1 class="text-xl font-bold flex items-center gap-2">
                     <i data-lucide="music"></i> 淚光閃閃 (音樂同步版)
                 </h1>
-                <p class="text-sky-100 text-sm">點擊「演唱」聽取原曲片段</p>
+                <p id="player-status" class="text-sky-100 text-sm">正在初始化音樂播放器...</p>
             </div>
             <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
         </div>
@@ -117,34 +118,52 @@
         </div>
     </div>
 
-    <div class="mt-8 max-w-2xl text-slate-500 text-sm bg-white/50 backdrop-blur p-4 rounded-xl border border-white/50">
-        <p class="flex items-center gap-2 mb-2 font-bold text-slate-700">
-            <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500"></i> 功能說明：
-        </p>
-        <ul class="list-disc list-inside space-y-1">
-            <li><b>原曲演唱</b>：點擊後 YouTube 音樂會自動跳轉至該句開始處。</li>
-            <li><b>自動跟隨</b>：開啟後，音樂播放到哪，歌詞頁面就會自動跳到哪。</li>
-            <li><b>AI 發音</b>：適合用來單獨練習這句歌詞中每個五十音的精確讀音。</li>
-        </ul>
-    </div>
+    <!-- Message Toast (Replace Alert) -->
+    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity pointer-events-none text-sm shadow-2xl"></div>
 
     <script>
-        // YouTube Player setup
-        var player;
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        // YouTube API Configuration
+        let player;
+        let playerReady = false;
 
-        function onYouTubeIframeAPIReady() {
+        // The API requires the callback function to be on the window object
+        window.onYouTubeIframeAPIReady = function() {
             player = new YT.Player('player', {
                 height: '0',
                 width: '0',
-                videoId: 'm_8_NfT_2fM', // 夏川里美 - 淚光閃閃 官方版本 ID
-                playerVars: { 'autoplay': 0, 'controls': 0 },
-                events: { 'onStateChange': onPlayerStateChange }
+                videoId: 'm_8_NfT_2fM',
+                playerVars: { 
+                    'autoplay': 0, 
+                    'controls': 0,
+                    'playsinline': 1,
+                    'origin': window.location.origin
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
             });
+        };
+
+        function onPlayerReady(event) {
+            playerReady = true;
+            document.getElementById('player-status').textContent = '音樂播放器已就緒';
+            setTimeout(() => {
+                document.getElementById('player-status').textContent = '點擊「演唱」聽取原曲片段';
+            }, 3000);
         }
+
+        function onPlayerError(e) {
+            console.error("YouTube Player Error", e);
+            showToast("播放器載入失敗，請確認網路連接。");
+        }
+
+        // Load YouTube API script
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         const lyricsData = [
             { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動。" }] },
@@ -152,14 +171,14 @@
             { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中。" }] },
             { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励まして", meaning: "鼓勵。" }] },
             { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "完全放晴。" }] },
-            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現。" }] },
-            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶。" }] },
+            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu あの笑容", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現。" }] },
+            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "お目" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶。" }] },
             { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影。" }] },
             { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "淚水流下的樣子。" }] }
         ];
 
         let currentIndex = 0;
-        let isSyncing = false;
+        let syncInterval;
 
         const el = {
             jp: document.getElementById('lyric-japanese'),
@@ -175,8 +194,15 @@
             speed: document.getElementById('speed-control'),
             speedVal: document.getElementById('speed-value'),
             sync: document.getElementById('sync-mode'),
-            cont: document.getElementById('content-container')
+            cont: document.getElementById('content-container'),
+            toast: document.getElementById('toast')
         };
+
+        function showToast(msg) {
+            el.toast.textContent = msg;
+            el.toast.style.opacity = "1";
+            setTimeout(() => { el.toast.style.opacity = "0"; }, 3000);
+        }
 
         function render() {
             const d = lyricsData[currentIndex];
@@ -193,12 +219,17 @@
 
         function playTTS() {
             const u = new SpeechSynthesisUtterance(lyricsData[currentIndex].japanese);
-            u.lang = 'ja-JP'; u.rate = parseFloat(el.speed.value);
-            window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+            u.lang = 'ja-JP'; 
+            u.rate = parseFloat(el.speed.value);
+            window.speechSynthesis.cancel(); 
+            window.speechSynthesis.speak(u);
         }
 
         function playSong() {
-            if (!player) return;
+            if (!playerReady || !player) {
+                showToast("播放器尚未準備好，請稍候...");
+                return;
+            }
             const startTime = lyricsData[currentIndex].start;
             player.seekTo(startTime, true);
             player.playVideo();
@@ -206,32 +237,35 @@
 
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.PLAYING) {
+                if (syncInterval) clearInterval(syncInterval);
                 syncInterval = setInterval(checkSync, 500);
             } else {
-                clearInterval(syncInterval);
+                if (syncInterval) clearInterval(syncInterval);
             }
         }
 
-        let syncInterval;
         function checkSync() {
-            if (!el.sync.checked || !player) return;
-            const curr = player.getCurrentTime();
-            // Find the best matching index
-            let newIdx = 0;
-            for (let i = 0; i < lyricsData.length; i++) {
-                if (curr >= lyricsData[i].start) {
-                    newIdx = i;
+            if (!el.sync.checked || !player || !playerReady) return;
+            try {
+                const curr = player.getCurrentTime();
+                let newIdx = 0;
+                for (let i = 0; i < lyricsData.length; i++) {
+                    if (curr >= lyricsData[i].start) {
+                        newIdx = i;
+                    }
                 }
-            }
-            if (newIdx !== currentIndex) {
-                updateContent(newIdx);
+                if (newIdx !== currentIndex) {
+                    updateContent(newIdx);
+                }
+            } catch (e) {
+                console.error("Sync error", e);
             }
         }
 
         function updateContent(newIdx) {
             if (newIdx === currentIndex) return;
             el.cont.classList.remove('fade-in');
-            void el.cont.offsetWidth;
+            void el.cont.offsetWidth; // Reflow
             currentIndex = newIdx;
             render();
             el.cont.classList.add('fade-in');
@@ -243,6 +277,7 @@
         el.song.addEventListener('click', playSong);
         el.speed.addEventListener('input', (e) => el.speedVal.textContent = `${e.target.value}x`);
 
+        // Initial setup
         render();
     </script>
 </body>
