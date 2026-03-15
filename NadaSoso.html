@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日文歌詞學習：淚光閃閃 (音樂同步版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif; }
+        ruby rt { font-family: 'Noto Sans JP', sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
+            background: #0284c7; cursor: pointer; margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; background: #e2e8f0; border-radius: 3px;
+        }
+        #youtube-player-container {
+            position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-sky-50 min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
+
+    <!-- YouTube Hidden Player -->
+    <div id="youtube-player-container">
+        <div id="player"></div>
+    </div>
+
+    <div class="max-w-2xl w-full bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col border border-sky-100">
+        
+        <!-- Header -->
+        <div class="bg-sky-600 p-6 text-white flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="music"></i> 淚光閃閃 (音樂同步版)
+                </h1>
+                <p class="text-sky-100 text-sm">點擊「演唱」聽取原曲片段</p>
+            </div>
+            <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="content-container" class="flex-grow p-8 flex flex-col items-center justify-center min-h-[500px] fade-in">
+            
+            <!-- Controls: Speech & Music -->
+            <div class="mb-6 flex flex-wrap justify-center gap-4 w-full">
+                <!-- AI Speech -->
+                <div class="flex flex-col items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <button id="btn-play-tts" class="bg-white text-sky-600 p-4 rounded-full hover:bg-sky-100 transition-all shadow-sm active:scale-90">
+                        <i data-lucide="bot"></i>
+                    </button>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">AI 發音</span>
+                </div>
+
+                <!-- Actual Song -->
+                <div class="flex flex-col items-center gap-2 bg-sky-50 p-4 rounded-2xl border border-sky-100">
+                    <button id="btn-play-song" class="bg-sky-600 text-white p-4 rounded-full hover:bg-sky-700 transition-all shadow-md active:scale-90">
+                        <i data-lucide="play-circle"></i>
+                    </button>
+                    <span class="text-[10px] font-bold text-sky-600 uppercase">原曲演唱</span>
+                </div>
+            </div>
+
+            <!-- Speed & Sync Controls -->
+            <div class="w-full max-w-xs mb-8 space-y-4">
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-bold">
+                        <span>AI 語速 (Speed)</span>
+                        <span id="speed-value" class="text-sky-600">0.6x</span>
+                    </div>
+                    <input type="range" id="speed-control" min="0.3" max="1.5" step="0.1" value="0.6" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                
+                <label class="flex items-center justify-center gap-2 cursor-pointer group">
+                    <input type="checkbox" id="sync-mode" class="w-4 h-4 text-sky-600 rounded">
+                    <span class="text-xs text-slate-500 group-hover:text-sky-600 transition-colors">自動跟隨音樂播放 (Sync Mode)</span>
+                </label>
+            </div>
+
+            <!-- Main Lyrics -->
+            <div class="mb-8 text-center">
+                <h2 id="lyric-japanese" class="text-3xl md:text-4xl font-bold mb-4 leading-relaxed tracking-wide min-h-[4rem]"></h2>
+                <p id="lyric-romaji" class="text-slate-400 font-mono italic text-lg"></p>
+            </div>
+
+            <!-- Translation -->
+            <div class="bg-sky-50 rounded-xl px-6 py-4 mb-8 w-full border-l-4 border-sky-400 shadow-sm">
+                <p id="lyric-chinese" class="text-xl text-sky-900 font-medium italic"></p>
+            </div>
+
+            <!-- Vocabulary Section -->
+            <div class="w-full">
+                <h3 class="flex items-center gap-2 text-slate-500 font-bold mb-3 uppercase tracking-wider text-sm border-b pb-1">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> 重點單字解析
+                </h3>
+                <div id="vocab-list" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="p-6 bg-slate-50 flex justify-between items-center border-t border-slate-100">
+            <button id="btn-prev" class="flex items-center gap-1 px-4 py-2 rounded-xl text-sky-600 hover:bg-sky-100 disabled:text-slate-300 transition-all font-bold">
+                <i data-lucide="chevron-left"></i> 上一句
+            </button>
+            <div id="progress-dots" class="flex gap-1"></div>
+            <button id="btn-next" class="flex items-center gap-1 px-4 py-2 rounded-xl text-sky-600 hover:bg-sky-100 disabled:text-slate-300 transition-all font-bold">
+                下一句 <i data-lucide="chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-8 max-w-2xl text-slate-500 text-sm bg-white/50 backdrop-blur p-4 rounded-xl border border-white/50">
+        <p class="flex items-center gap-2 mb-2 font-bold text-slate-700">
+            <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500"></i> 功能說明：
+        </p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><b>原曲演唱</b>：點擊後 YouTube 音樂會自動跳轉至該句開始處。</li>
+            <li><b>自動跟隨</b>：開啟後，音樂播放到哪，歌詞頁面就會自動跳到哪。</li>
+            <li><b>AI 發音</b>：適合用來單獨練習這句歌詞中每個五十音的精確讀音。</li>
+        </ul>
+    </div>
+
+    <script>
+        // YouTube Player setup
+        var player;
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '0',
+                width: '0',
+                videoId: 'm_8_NfT_2fM', // 夏川里美 - 淚光閃閃 官方版本 ID
+                playerVars: { 'autoplay': 0, 'controls': 0 },
+                events: { 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        const lyricsData = [
+            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動。" }] },
+            { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやいた", meaning: "嘀咕、自言自語。" }] },
+            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中。" }] },
+            { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励まして", meaning: "鼓勵。" }] },
+            { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "完全放晴。" }] },
+            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現。" }] },
+            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶。" }] },
+            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影。" }] },
+            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "淚水流下的樣子。" }] }
+        ];
+
+        let currentIndex = 0;
+        let isSyncing = false;
+
+        const el = {
+            jp: document.getElementById('lyric-japanese'),
+            rm: document.getElementById('lyric-romaji'),
+            cn: document.getElementById('lyric-chinese'),
+            v: document.getElementById('vocab-list'),
+            pg: document.getElementById('page-indicator'),
+            dt: document.getElementById('progress-dots'),
+            prev: document.getElementById('btn-prev'),
+            next: document.getElementById('btn-next'),
+            tts: document.getElementById('btn-play-tts'),
+            song: document.getElementById('btn-play-song'),
+            speed: document.getElementById('speed-control'),
+            speedVal: document.getElementById('speed-value'),
+            sync: document.getElementById('sync-mode'),
+            cont: document.getElementById('content-container')
+        };
+
+        function render() {
+            const d = lyricsData[currentIndex];
+            el.jp.innerHTML = d.ruby.map(p => p.kanji ? `<ruby class="mx-0.5">${p.kanji}<rt class="text-sm text-sky-600 font-medium">${p.kana}</rt></ruby>` : `<span>${p.text}</span>`).join('');
+            el.rm.textContent = d.romaji;
+            el.cn.textContent = `「${d.chinese}」`;
+            el.pg.textContent = `${currentIndex + 1} / ${lyricsData.length}`;
+            el.v.innerHTML = d.vocab.map(v => `<div class="text-sm"><span class="font-bold text-sky-700">${v.word}</span> <span class="text-slate-500">${v.meaning}</span></div>`).join('');
+            el.dt.innerHTML = lyricsData.map((_, i) => `<div class="h-1.5 rounded-full transition-all ${i === currentIndex ? 'w-8 bg-sky-600' : 'w-2 bg-slate-300'}"></div>`).join('');
+            el.prev.disabled = currentIndex === 0;
+            el.next.disabled = currentIndex === lyricsData.length - 1;
+            lucide.createIcons();
+        }
+
+        function playTTS() {
+            const u = new SpeechSynthesisUtterance(lyricsData[currentIndex].japanese);
+            u.lang = 'ja-JP'; u.rate = parseFloat(el.speed.value);
+            window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+        }
+
+        function playSong() {
+            if (!player) return;
+            const startTime = lyricsData[currentIndex].start;
+            player.seekTo(startTime, true);
+            player.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                syncInterval = setInterval(checkSync, 500);
+            } else {
+                clearInterval(syncInterval);
+            }
+        }
+
+        let syncInterval;
+        function checkSync() {
+            if (!el.sync.checked || !player) return;
+            const curr = player.getCurrentTime();
+            // Find the best matching index
+            let newIdx = 0;
+            for (let i = 0; i < lyricsData.length; i++) {
+                if (curr >= lyricsData[i].start) {
+                    newIdx = i;
+                }
+            }
+            if (newIdx !== currentIndex) {
+                updateContent(newIdx);
+            }
+        }
+
+        function updateContent(newIdx) {
+            if (newIdx === currentIndex) return;
+            el.cont.classList.remove('fade-in');
+            void el.cont.offsetWidth;
+            currentIndex = newIdx;
+            render();
+            el.cont.classList.add('fade-in');
+        }
+
+        el.prev.addEventListener('click', () => updateContent(currentIndex - 1));
+        el.next.addEventListener('click', () => updateContent(currentIndex + 1));
+        el.tts.addEventListener('click', playTTS);
+        el.song.addEventListener('click', playSong);
+        el.speed.addEventListener('input', (e) => el.speedVal.textContent = `${e.target.value}x`);
+
+        render();
+    </script>
+</body>
+</html>
