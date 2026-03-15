@@ -30,7 +30,7 @@ YouTube 原曲同步：整合 YouTube API，點擊即可聽取該句的原曲演
 
 稍等片刻，即可透過 GitHub 提供的網址訪問你的學習網頁。
 
-我的試用網址 http://lsslss.github.com/KanaMaster/NadaSoso.html
+我的試用網址 http://lsslss.github.io/KanaMaster/NadaSoso.html
 
 🛠 使用技術
 
