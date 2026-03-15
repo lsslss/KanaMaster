@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>日文學習：淚光閃閃</title>
+    <title>AI 語言學習框架</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -15,7 +15,6 @@
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* 美化滑桿 */
         input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
@@ -40,8 +39,8 @@
         <!-- Top Bar -->
         <div class="px-6 pt-10 pb-4 flex justify-between items-center bg-white/80 backdrop-blur sticky top-0 z-10">
             <div class="flex flex-col">
-                <span class="text-[10px] font-bold text-sky-500 uppercase tracking-[0.2em]">Now Learning</span>
-                <h1 class="text-xl font-bold text-slate-900">涙そうそう</h1>
+                <span class="text-[10px] font-bold text-sky-500 uppercase tracking-[0.2em]">Learning Framework</span>
+                <h1 id="display-song-title" class="text-xl font-bold text-slate-900 text-ellipsis overflow-hidden whitespace-nowrap max-w-[200px]">載入中...</h1>
             </div>
             <button id="btn-open-settings" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 active:scale-90 transition-transform">
                 <i data-lucide="settings"></i>
@@ -51,29 +50,29 @@
         <!-- Progress Indicator -->
         <div class="px-6 py-2">
             <div class="h-1 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                <div id="progress-bar" class="h-full bg-sky-500 transition-all duration-300" style="width: 11%"></div>
+                <div id="progress-bar" class="h-full bg-sky-500 transition-all duration-300" style="width: 0%"></div>
             </div>
             <div class="flex justify-between mt-2 text-[10px] font-mono text-slate-400">
-                <span id="page-num">Page 01</span>
-                <span>Total 09</span>
+                <span id="page-num">Page --</span>
+                <span id="total-num">Total --</span>
             </div>
         </div>
 
         <!-- Lyrics Canvas -->
         <div id="content-container" class="flex-grow px-8 flex flex-col justify-center text-center fade-in">
             <div class="mb-10">
-                <h2 id="lyric-japanese" class="text-4xl md:text-5xl font-bold leading-[1.8] text-slate-900 mb-6 break-words"></h2>
-                <p id="lyric-romaji" class="text-lg font-mono text-slate-400 italic tracking-tight"></p>
+                <h2 id="lyric-japanese" class="text-3xl md:text-4xl font-bold leading-[1.8] text-slate-900 mb-6 break-words">尚未匯入教材</h2>
+                <p id="lyric-romaji" class="text-base font-mono text-slate-400 italic tracking-tight"></p>
             </div>
             
             <div class="relative py-6 px-4 border-y border-slate-50 italic text-sky-900 font-medium text-lg leading-relaxed">
                 <i data-lucide="quote" class="absolute -top-2 -left-2 w-6 h-6 text-sky-100 -scale-x-100"></i>
-                <span id="lyric-chinese"></span>
+                <span id="lyric-chinese">請至設定上傳內容檔 (.json)</span>
             </div>
         </div>
 
         <!-- Vocabulary Card -->
-        <div class="px-6 py-4 bg-slate-50/50">
+        <div class="px-6 py-4 bg-slate-50/50 min-h-[120px]">
             <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                 <i data-lucide="book-open" class="w-3 h-3"></i> Vocabulary Note
             </h3>
@@ -104,88 +103,74 @@
 
         <!-- Settings Modal -->
         <div id="settings-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end">
-            <div class="w-full bg-white rounded-t-[40px] p-8 modal-enter flex flex-col max-h-[90vh]">
+            <div class="w-full bg-white rounded-t-[40px] p-8 modal-enter flex flex-col max-h-[95vh]">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold flex items-center gap-2">
-                        <i data-lucide="sliders"></i> 學習設定
+                        <i data-lucide="sliders"></i> 框架設定中心
                     </h3>
                     <button id="btn-close-settings" class="p-2 text-slate-400">
                         <i data-lucide="x"></i>
                     </button>
                 </div>
 
-                <div class="space-y-8 overflow-y-auto pb-10 no-scrollbar">
-                    <!-- Audio File & Player -->
-                    <div class="space-y-4">
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">音樂與校準工具</label>
-                        
-                        <!-- Upload Zone -->
-                        <div id="file-upload-zone" class="w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:bg-sky-50 transition-colors cursor-pointer group">
-                            <input type="file" id="audio-file" accept="audio/*" class="hidden">
-                            <div id="upload-ui-default">
-                                <p class="text-sm text-slate-500 flex items-center justify-center gap-2">
-                                    <i data-lucide="upload-cloud" class="w-5 h-5 text-sky-400"></i> 上傳 MP3
-                                </p>
-                            </div>
-                            <div id="upload-ui-done" class="hidden items-center justify-center gap-2">
-                                <i data-lucide="check-circle" class="text-green-500 w-4 h-4"></i>
-                                <span id="file-name" class="text-xs font-medium text-slate-700 truncate max-w-[150px]"></span>
-                            </div>
+                <div class="space-y-6 overflow-y-auto pb-10 no-scrollbar">
+                    
+                    <!-- File Importers -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">1. 音樂檔案 (MP3)</label>
+                            <button id="trigger-audio" class="w-full h-24 border-2 border-dashed border-sky-100 rounded-2xl flex flex-col items-center justify-center bg-sky-50/30 hover:bg-sky-50 transition-colors">
+                                <i data-lucide="music" class="w-6 h-6 text-sky-400 mb-1"></i>
+                                <span id="label-audio" class="text-[10px] text-sky-600 px-2 text-center">點擊上傳</span>
+                                <input type="file" id="audio-file" accept="audio/*" class="hidden">
+                            </button>
                         </div>
-
-                        <!-- Mini Player for Calibration -->
-                        <div id="mini-player" class="bg-slate-50 rounded-2xl p-4 space-y-3 hidden">
-                            <div class="flex items-center gap-3">
-                                <button id="btn-mini-play" class="w-10 h-10 flex items-center justify-center rounded-full bg-sky-600 text-white">
-                                    <i data-lucide="play" id="mini-play-icon" class="w-4 h-4 fill-current"></i>
-                                </button>
-                                <div class="flex-grow">
-                                    <input type="range" id="mini-progress" min="0" max="100" value="0" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                                </div>
-                                <span id="mini-time" class="text-[10px] font-mono text-slate-500 w-12 text-right">00:00</span>
-                            </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">2. 內容檔 (JSON)</label>
+                            <button id="trigger-json" class="w-full h-24 border-2 border-dashed border-amber-100 rounded-2xl flex flex-col items-center justify-center bg-amber-50/30 hover:bg-amber-50 transition-colors">
+                                <i data-lucide="file-json" class="w-6 h-6 text-amber-400 mb-1"></i>
+                                <span id="label-json" class="text-[10px] text-amber-600 px-2 text-center">點擊上傳</span>
+                                <input type="file" id="json-file" accept=".json" class="hidden">
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Offset Control -->
-                    <div class="space-y-4">
+                    <!-- Mini Player & Calibration -->
+                    <div id="mini-player" class="bg-slate-50 rounded-2xl p-4 space-y-4 hidden">
+                        <div class="flex items-center gap-3">
+                            <button id="btn-mini-play" class="w-10 h-10 flex items-center justify-center rounded-full bg-sky-600 text-white"><i data-lucide="play" id="mini-icon" class="w-4 h-4 fill-current"></i></button>
+                            <div class="flex-grow"><input type="range" id="mini-progress" min="0" max="100" value="0" class="w-full h-1.5 bg-slate-200 rounded-lg"></div>
+                            <span id="mini-time" class="text-[10px] font-mono text-slate-500">00:00</span>
+                        </div>
+                        <button id="btn-capture-time" class="w-full py-3 bg-white border border-sky-100 text-sky-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
+                            <i data-lucide="target" class="w-4 h-4"></i> 同步目前音樂時間至本頁歌詞
+                        </button>
+                    </div>
+
+                    <!-- Fine Tuning -->
+                    <div class="space-y-4 px-1">
                         <div class="flex justify-between">
-                            <span class="text-sm font-medium text-rose-500 flex items-center gap-1">
-                                <i data-lucide="timer" class="w-4 h-4"></i> 時間校準 (Offset)
-                            </span>
+                            <span class="text-sm font-bold text-rose-500 flex items-center gap-1"><i data-lucide="timer" class="w-4 h-4"></i> 全域偏移補償</span>
                             <span id="offset-value" class="text-rose-500 font-bold">0.0s</span>
                         </div>
-                        <!-- 已將範圍從 ±10 修改為 ±40 以適應長前奏 -->
                         <input type="range" id="offset-control" min="-40" max="40" step="0.5" value="0" class="w-full">
-                        <p class="text-[10px] text-slate-400 text-center">歌詞太早出現請向右拉 (+)，太晚則向左拉 (-)</p>
-                    </div>
-
-                    <!-- AI Speed -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between">
-                            <span class="text-sm font-medium flex items-center gap-1">
-                                <i data-lucide="gauge" class="w-4 h-4 text-sky-500"></i> AI 語速
-                            </span>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-bold">AI 朗讀語速</span>
                             <span id="speed-value" class="text-sky-600 font-bold">0.6x</span>
                         </div>
                         <input type="range" id="speed-control" min="0.3" max="1.5" step="0.1" value="0.6" class="w-full">
                     </div>
 
-                    <!-- Sync Toggle -->
                     <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-bold">自動同步翻頁</span>
-                            <span class="text-[10px] text-slate-400">隨音樂進度顯示對應歌詞頁</span>
-                        </div>
+                        <span class="text-sm font-bold">自動同步翻頁</span>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="sync-mode" class="sr-only peer">
-                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                            <div class="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
                         </label>
                     </div>
 
-                    <button id="btn-reset" class="w-full py-4 rounded-2xl border border-rose-100 text-rose-500 text-sm font-bold active:bg-rose-50 transition-colors">
-                        清除所有快取資料
-                    </button>
+                    <button id="btn-reset" class="w-full py-3 rounded-2xl border border-rose-100 text-rose-500 text-xs font-bold active:bg-rose-50">清空專案與緩存資料</button>
                 </div>
             </div>
         </div>
@@ -195,33 +180,36 @@
     <div id="toast" class="fixed top-12 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none text-xs font-bold z-[100] shadow-xl text-center"></div>
 
     <script>
-        const audioInput = document.getElementById('audio-file');
-        const audioPlayer = document.getElementById('main-audio');
-        const uploadZone = document.getElementById('file-upload-zone');
-        
+        // 預設教材 (Nada Soso) - 當使用者沒上傳 JSON 時的備援
+        const DEFAULT_JSON = {
+            songTitle: "淚光閃閃 (範例)",
+            lyrics: [
+                { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動。" }] },
+                { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやく", meaning: "嘀咕。" }] },
+                { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中。" }] },
+                { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "勵ます", meaning: "鼓勵。" }] },
+                { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "天空放晴。" }] },
+                { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現。" }] },
+                { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "あせる", meaning: "褪色。" }] },
+                { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影。" }] },
+                { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "淚流不止。" }] }
+            ]
+        };
+
+        let currentProject = DEFAULT_JSON;
         let currentIndex = 0;
         let offset = 0;
-        let isManualPlaying = false; // 是否正在進行單句播放
+        let isManualPlaying = false;
         let sentenceEndTime = 0;
 
-        const lyricsData = [
-            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的、古老的。" }, { word: "めくり", meaning: "翻動、翻開。" }] },
-            { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやく", meaning: "嘀咕、自言自語。" }] },
-            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中、胸膛。" }] },
-            { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "勵ます", meaning: "鼓勵、激勵。" }] },
-            { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "天空放晴。" }] },
-            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現、想起。" }] },
-            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "あせる", meaning: "褪色、淡去。" }] },
-            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影、面容。" }] },
-            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "沖繩方言，淚流不止。" }] }
-        ];
-
         const el = {
+            title: document.getElementById('display-song-title'),
             jp: document.getElementById('lyric-japanese'),
             rm: document.getElementById('lyric-romaji'),
             cn: document.getElementById('lyric-chinese'),
             v: document.getElementById('vocab-list'),
             pg: document.getElementById('page-num'),
+            total: document.getElementById('total-num'),
             pb: document.getElementById('progress-bar'),
             prev: document.getElementById('btn-prev'),
             next: document.getElementById('btn-next'),
@@ -235,54 +223,31 @@
             sync: document.getElementById('sync-mode'),
             cont: document.getElementById('content-container'),
             toast: document.getElementById('toast'),
-            upDefault: document.getElementById('upload-ui-default'),
-            upDone: document.getElementById('upload-ui-done'),
-            fileName: document.getElementById('file-name'),
+            audioFile: document.getElementById('audio-file'),
+            jsonFile: document.getElementById('json-file'),
+            lblAudio: document.getElementById('label-audio'),
+            lblJson: document.getElementById('label-json'),
             modal: document.getElementById('settings-modal'),
-            btnOpen: document.getElementById('btn-open-settings'),
-            btnClose: document.getElementById('btn-close-settings'),
-            btnReset: document.getElementById('btn-reset'),
             miniPlayer: document.getElementById('mini-player'),
-            btnMiniPlay: document.getElementById('btn-mini-play'),
-            miniIcon: document.getElementById('mini-play-icon'),
+            miniIcon: document.getElementById('mini-icon'),
             miniProgress: document.getElementById('mini-progress'),
-            miniTime: document.getElementById('mini-time')
+            miniTime: document.getElementById('mini-time'),
+            btnCapture: document.getElementById('btn-capture-time')
         };
 
-        // --- IndexedDB & LocalStorage ---
-        const DB_NAME = "NadaSosoLearningV2";
-        const STORE_NAME = "AudioStore";
+        const DB_NAME = "LanguageFrameworkDB";
+        const STORE_NAME = "Projects";
         let db;
 
-        const dbReq = indexedDB.open(DB_NAME, 1);
-        dbReq.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+        const dbReq = indexedDB.open(DB_NAME, 2);
+        dbReq.onupgradeneeded = (e) => {
+            const dbRef = e.target.result;
+            if (!dbRef.objectStoreNames.contains(STORE_NAME)) dbRef.createObjectStore(STORE_NAME);
+        };
         dbReq.onsuccess = (e) => {
             db = e.target.result;
-            loadStoredData();
+            loadProject();
         };
-
-        function loadStoredData() {
-            const tx = db.transaction(STORE_NAME, "readonly");
-            const getReq = tx.objectStore(STORE_NAME).get("audio");
-            getReq.onsuccess = () => {
-                if (getReq.result) {
-                    const { blob, name } = getReq.result;
-                    audioPlayer.src = URL.createObjectURL(blob);
-                    el.upDefault.classList.add('hidden');
-                    el.fileName.textContent = name;
-                    el.upDone.classList.remove('hidden');
-                    el.upDone.classList.add('flex');
-                    el.song.disabled = false;
-                    el.miniPlayer.classList.remove('hidden');
-                }
-            };
-            const savedOffset = localStorage.getItem('nada-offset-v2');
-            if (savedOffset) {
-                offset = parseFloat(savedOffset);
-                el.offset.value = offset;
-                el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
-            }
-        }
 
         function showToast(msg) {
             el.toast.textContent = msg;
@@ -296,25 +261,131 @@
             return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         }
 
-        function render() {
-            const d = lyricsData[currentIndex];
-            el.jp.innerHTML = d.ruby.map(p => p.kanji ? `<ruby class="mx-0.5">${p.kanji}<rt class="text-[0.45em] text-sky-500 font-bold">${p.kana}</rt></ruby>` : `<span>${p.text}</span>`).join('');
-            el.rm.textContent = d.romaji;
-            el.cn.textContent = d.chinese;
-            el.pg.textContent = `Page ${String(currentIndex + 1).padStart(2, '0')}`;
-            el.pb.style.width = `${((currentIndex + 1) / lyricsData.length) * 100}%`;
+        async function loadProject() {
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const store = tx.objectStore(STORE_NAME);
             
-            el.v.innerHTML = d.vocab.map(v => `
+            // 讀取 JSON 配置
+            const configReq = store.get("config");
+            configReq.onsuccess = () => {
+                if (configReq.result) {
+                    currentProject = configReq.result;
+                    el.lblJson.textContent = "已載入內容";
+                }
+                render();
+            };
+
+            // 讀取音訊
+            const audioReq = store.get("audio");
+            audioReq.onsuccess = () => {
+                if (audioReq.result) {
+                    const { blob, name } = audioReq.result;
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('main-audio').src = url;
+                    el.lblAudio.textContent = name;
+                    el.song.disabled = false;
+                    el.miniPlayer.classList.remove('hidden');
+                }
+            };
+
+            const savedOffset = localStorage.getItem('framework-offset');
+            if (savedOffset) {
+                offset = parseFloat(savedOffset);
+                el.offset.value = offset;
+                el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
+            }
+        }
+
+        function render() {
+            if (!currentProject.lyrics || currentProject.lyrics.length === 0) return;
+            
+            const d = currentProject.lyrics[currentIndex];
+            el.title.textContent = currentProject.songTitle || "未命名歌曲";
+            el.jp.innerHTML = d.ruby ? d.ruby.map(p => p.kanji ? `<ruby class="mx-0.5">${p.kanji}<rt class="text-[0.45em] text-sky-500 font-bold">${p.kana}</rt></ruby>` : `<span>${p.text}</span>`).join('') : d.japanese;
+            el.rm.textContent = d.romaji || "";
+            el.cn.textContent = d.chinese || "";
+            el.pg.textContent = `Page ${String(currentIndex + 1).padStart(2, '0')}`;
+            el.total.textContent = `Total ${String(currentProject.lyrics.length).padStart(2, '0')}`;
+            el.pb.style.width = `${((currentIndex + 1) / currentProject.lyrics.length) * 100}%`;
+            
+            el.v.innerHTML = d.vocab ? d.vocab.map(v => `
                 <div class="flex-shrink-0 w-40 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-                    <p class="font-bold text-sky-700 text-sm mb-1">${v.word}</p>
-                    <p class="text-[10px] text-slate-500 leading-tight">${v.meaning}</p>
+                    <p class="font-bold text-sky-700 text-xs mb-1">${v.word}</p>
+                    <p class="text-[9px] text-slate-500 leading-tight">${v.meaning}</p>
                 </div>
-            `).join('');
+            `).join('') : "";
 
             el.prev.disabled = currentIndex === 0;
-            el.next.disabled = currentIndex === lyricsData.length - 1;
+            el.next.disabled = currentIndex === currentProject.lyrics.length - 1;
             lucide.createIcons();
         }
+
+        // --- File Handling ---
+        document.getElementById('trigger-audio').onclick = () => el.audioFile.click();
+        document.getElementById('trigger-json').onclick = () => el.jsonFile.click();
+
+        el.audioFile.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                tx.objectStore(STORE_NAME).put({ blob: file, name: file.name }, "audio");
+                showToast("音訊已匯入");
+                setTimeout(() => location.reload(), 500);
+            }
+        };
+
+        el.jsonFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const json = JSON.parse(event.target.result);
+                        if (!json.lyrics) throw new Error("無效的格式");
+                        const tx = db.transaction(STORE_NAME, "readwrite");
+                        tx.objectStore(STORE_NAME).put(json, "config");
+                        showToast("內容檔已匯入");
+                        setTimeout(() => location.reload(), 500);
+                    } catch (err) {
+                        showToast("JSON 格式錯誤！");
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+
+        // --- Core Logic ---
+        const audioPlayer = document.getElementById('main-audio');
+
+        el.song.onclick = () => {
+            if (!audioPlayer.src) return;
+            const startTime = Math.max(0, currentProject.lyrics[currentIndex].start + offset);
+            sentenceEndTime = (currentIndex < currentProject.lyrics.length - 1) 
+                ? currentProject.lyrics[currentIndex + 1].start + offset 
+                : audioPlayer.duration;
+            audioPlayer.currentTime = startTime;
+            isManualPlaying = true;
+            audioPlayer.play();
+        };
+
+        audioPlayer.ontimeupdate = () => {
+            const curr = audioPlayer.currentTime;
+            if (!isNaN(audioPlayer.duration)) {
+                el.miniProgress.value = (curr / audioPlayer.duration) * 100;
+                el.miniTime.textContent = formatTime(curr);
+            }
+            if (isManualPlaying && curr >= sentenceEndTime) {
+                audioPlayer.pause();
+                isManualPlaying = false;
+            }
+            if (el.sync.checked && !isManualPlaying) {
+                let n = -1;
+                for(let i=0; i<currentProject.lyrics.length; i++) {
+                    if(curr >= currentProject.lyrics[i].start + offset) n = i;
+                }
+                if(n !== -1 && n !== currentIndex) updateContent(n);
+            }
+        };
 
         function updateContent(newIdx) {
             if (newIdx === currentIndex) return;
@@ -325,117 +396,44 @@
             el.cont.classList.add('fade-in');
         }
 
-        // --- Interaction ---
-        el.btnOpen.onclick = () => el.modal.classList.remove('hidden');
-        el.btnClose.onclick = () => {
-            el.modal.classList.add('hidden');
-            audioPlayer.pause(); // 關閉設定時停止音樂
+        el.btnCapture.onclick = () => {
+            if (!audioPlayer.src) return;
+            const currentMusicTime = audioPlayer.currentTime;
+            const defaultStartTime = currentProject.lyrics[currentIndex].start;
+            const newOffset = currentMusicTime - defaultStartTime;
+            offset = Math.round(newOffset * 2) / 2;
+            el.offset.value = offset;
+            el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
+            localStorage.setItem('framework-offset', offset);
+            showToast(`已對準：${offset.toFixed(1)}s`);
         };
 
-        uploadZone.onclick = () => audioInput.click();
-        audioInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                audioPlayer.src = URL.createObjectURL(file);
-                const tx = db.transaction(STORE_NAME, "readwrite");
-                tx.objectStore(STORE_NAME).put({ blob: file, name: file.name }, "audio");
-                el.upDefault.classList.add('hidden');
-                el.fileName.textContent = file.name;
-                el.upDone.classList.remove('hidden');
-                el.upDone.classList.add('flex');
-                el.song.disabled = false;
-                el.miniPlayer.classList.remove('hidden');
-                showToast("音樂已儲存");
-            }
-        };
-
+        // UI toggles
+        document.getElementById('btn-open-settings').onclick = () => el.modal.classList.remove('hidden');
+        document.getElementById('btn-close-settings').onclick = () => el.modal.classList.add('hidden');
         el.offset.oninput = (e) => {
             offset = parseFloat(e.target.value);
             el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
-            localStorage.setItem('nada-offset-v2', offset);
+            localStorage.setItem('framework-offset', offset);
         };
-
-        el.speed.oninput = (e) => el.speedVal.textContent = `${e.target.value}x`;
-
+        el.speed.oninput = (e) => {
+            document.getElementById('speed-value').textContent = e.target.value + "x";
+        };
         el.tts.onclick = () => {
-            const u = new SpeechSynthesisUtterance(lyricsData[currentIndex].japanese);
+            const u = new SpeechSynthesisUtterance(currentProject.lyrics[currentIndex].japanese);
             u.lang = 'ja-JP'; u.rate = parseFloat(el.speed.value);
             window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
         };
-
-        el.song.onclick = () => {
-            if (!audioPlayer.src) return;
-            
-            // 計算起點與終點
-            const startTime = Math.max(0, lyricsData[currentIndex].start + offset);
-            // 終點為下一句的起點，如果是最後一句則播到完
-            sentenceEndTime = (currentIndex < lyricsData.length - 1) 
-                ? lyricsData[currentIndex + 1].start + offset 
-                : audioPlayer.duration;
-
-            audioPlayer.currentTime = startTime;
-            isManualPlaying = true;
-            audioPlayer.play();
-        };
-
-        // --- Mini Player Controls ---
         el.btnMiniPlay.onclick = () => {
-            if (audioPlayer.paused) {
-                isManualPlaying = false; // 自由播放模式
-                audioPlayer.play();
-            } else {
-                audioPlayer.pause();
-            }
+            if (audioPlayer.paused) { isManualPlaying = false; audioPlayer.play(); }
+            else audioPlayer.pause();
         };
-
-        el.miniProgress.oninput = (e) => {
-            if (!audioPlayer.src) return;
-            const time = (e.target.value / 100) * audioPlayer.duration;
-            audioPlayer.currentTime = time;
-        };
-
-        audioPlayer.ontimeupdate = () => {
-            const curr = audioPlayer.currentTime;
-            
-            // 更新 Mini Player UI
-            if (!isNaN(audioPlayer.duration)) {
-                el.miniProgress.value = (curr / audioPlayer.duration) * 100;
-                el.miniTime.textContent = formatTime(curr);
-            }
-
-            // 單句播放停止邏輯
-            if (isManualPlaying && curr >= sentenceEndTime) {
-                audioPlayer.pause();
-                isManualPlaying = false;
-            }
-
-            // 自動同步翻頁邏輯
-            if (el.sync.checked) {
-                let n = -1;
-                for(let i=0; i<lyricsData.length; i++) {
-                    if(curr >= lyricsData[i].start + offset) n = i;
-                }
-                if(n !== -1 && n !== currentIndex) updateContent(n);
-            }
-        };
-
-        audioPlayer.onplay = () => {
-            el.mainIcon.setAttribute('data-lucide', isManualPlaying ? 'play' : 'pause');
-            el.miniIcon.setAttribute('data-lucide', 'pause');
-            lucide.createIcons();
-        };
-
-        audioPlayer.onpause = () => {
-            el.mainIcon.setAttribute('data-lucide', 'play');
-            el.miniIcon.setAttribute('data-lucide', 'play');
-            lucide.createIcons();
-        };
-
+        audioPlayer.onplay = () => { el.mainIcon.setAttribute('data-lucide', 'pause'); el.miniIcon.setAttribute('data-lucide', 'pause'); lucide.createIcons(); };
+        audioPlayer.onpause = () => { el.mainIcon.setAttribute('data-lucide', 'play'); el.miniIcon.setAttribute('data-lucide', 'play'); lucide.createIcons(); };
         el.prev.onclick = () => updateContent(currentIndex - 1);
         el.next.onclick = () => updateContent(currentIndex + 1);
-        
-        el.btnReset.onclick = () => {
-            if(confirm("確定要清空資料嗎？")){
+        document.getElementById('btn-reset').onclick = () => {
+            if (confirm("清空目前的所有教材資料？")) {
                 localStorage.clear();
                 const tx = db.transaction(STORE_NAME, "readwrite");
                 tx.objectStore(STORE_NAME).clear();
@@ -443,7 +441,6 @@
             }
         };
 
-        render();
         lucide.createIcons();
     </script>
 </body>
