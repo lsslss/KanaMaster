@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kana Master - 旅遊五十音全面強化版</title>
+    <title>Kana Master - 旅遊五十音全功能版</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -23,15 +23,15 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-slate-50 select-none overflow-x-hidden text-slate-800">
+<body class="bg-slate-50 select-none overflow-x-hidden text-slate-800 font-sans">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
-        // --- 完整資料庫：平假名 & 片假名 (旅遊單字全覆蓋) ---
+        // --- 完整資料庫：旅遊情境單字修正版 ---
         const KANA_DATA = [
-            // --- 平假名基本音 ---
+            // --- 平假名 (Hira) 基本音 ---
             { kana: 'あ', romaji: 'a', row: 'あ行', charType: 'hira', word: 'あさごはん', meaning: '早餐', emoji: '🍳', source: '安' },
             { kana: 'い', romaji: 'i', row: 'あ行', charType: 'hira', word: 'いりぐち', meaning: '入口', emoji: '🚪', source: '以' },
             { kana: 'う', romaji: 'u', row: 'あ行', charType: 'hira', word: 'うみ', meaning: '大海', emoji: '🌊', source: '宇' },
@@ -49,7 +49,7 @@
             { kana: 'そ', romaji: 'so', row: 'さ行', charType: 'hira', word: 'そら', meaning: '天空', emoji: '☁️', source: '曽' },
             { kana: 'た', romaji: 'ta', row: 'た行', charType: 'hira', word: 'たべもの', meaning: '食物', emoji: '🍜', source: '太' },
             { kana: 'ち', romaji: 'chi', row: 'た行', charType: 'hira', word: 'ちず', meaning: '地圖', emoji: '🗺️', source: '知' },
-            { kana: 'つ', romaji: 'tsu', row: 'た行', charType: 'hira', word: 'つうしん', meaning: '網卡', emoji: '📶', source: '川' },
+            { kana: 'つ', romaji: 'tsu', row: 'た行', charType: 'hira', word: 'つうしん', meaning: '通訊', emoji: '📶', source: '川' },
             { kana: 'て', romaji: 'te', row: 'た行', charType: 'hira', word: 'てんぷら', meaning: '天婦羅', emoji: '🍤', source: '天' },
             { kana: 'と', romaji: 'to', row: 'た行', charType: 'hira', word: 'とっきゅう', meaning: '特急', emoji: '🚆', source: '止' },
             { kana: 'な', romaji: 'na', row: 'な行', charType: 'hira', word: 'なまびーる', meaning: '生啤酒', emoji: '🍺', source: '奈' },
@@ -60,10 +60,10 @@
             { kana: 'は', romaji: 'ha', row: 'は行', charType: 'hira', word: 'はし', meaning: '筷子', emoji: '🥢', source: '波' },
             { kana: 'ひ', romaji: 'hi', row: 'は行', charType: 'hira', word: 'ひこうき', meaning: '飛機', emoji: '🛫', source: '比' },
             { kana: 'ふ', romaji: 'fu', row: 'は行', charType: 'hira', word: 'ふね', meaning: '船', emoji: '🚢', source: '不' },
-            { kana: 'へ', romaji: 'he', row: 'は行', charType: 'hira', word: 'へ야', meaning: '房間', emoji: '🛌', source: '部' },
+            { kana: 'へ', romaji: 'he', row: 'は行', charType: 'hira', word: 'へや', meaning: '房間', emoji: '🛌', source: '部' },
             { kana: 'ほ', romaji: 'ho', row: 'は行', charType: 'hira', word: 'ほてる', meaning: '飯店', emoji: '🏨', source: '保' },
             { kana: 'ま', romaji: 'ma', row: 'ま行', charType: 'hira', word: 'まつり', meaning: '祭典', emoji: '🏮', source: '末' },
-            { kana: 'み', romaji: 'mi', row: 'ま行', charType: 'hira', word: 'みち', meaning: '道路', emoji: '🛣️', source: '美' },
+            { kana: 'み', romaji: 'mi', row: 'ま行', charType: 'hira', word: 'みかん', meaning: '橘子', emoji: '🍊', source: '美' },
             { kana: 'む', romaji: 'mu', row: 'ま行', charType: 'hira', word: 'むりょう', meaning: '免費', emoji: '🆓', source: '武' },
             { kana: 'め', romaji: 'me', row: 'ま行', charType: 'hira', word: 'めいぶつ', meaning: '名產', emoji: '🍱', source: '女' },
             { kana: 'も', romaji: 'mo', row: 'ま行', charType: 'hira', word: 'ものれーる', meaning: '單軌', emoji: '🚝', source: '毛' },
@@ -79,7 +79,7 @@
             { kana: 'を', romaji: 'wo', row: 'わ行', charType: 'hira', word: 'を', meaning: '助詞', emoji: '📝', source: '遠' },
             { kana: 'ん', romaji: 'n', row: '鼻音', charType: 'hira', word: 'ぱん', meaning: '麵包', emoji: '🍞', source: '无' },
 
-            // --- 平假名濁音 ---
+            // --- 平假名 濁音 ---
             { kana: 'が', romaji: 'ga', row: 'が行', charType: 'hira', word: 'がいか', meaning: '外幣', emoji: '💵', source: '加' },
             { kana: 'ぎ', romaji: 'gi', row: 'が行', charType: 'hira', word: 'ぎんこう', meaning: '銀行', emoji: '🏦', source: '幾' },
             { kana: 'ぐ', romaji: 'gu', row: 'が行', charType: 'hira', word: 'ぐみ', meaning: '軟糖', emoji: '🍬', source: '久' },
@@ -89,10 +89,8 @@
             { kana: 'じ', romaji: 'ji', row: 'ざ行', charType: 'hira', word: 'じかん', meaning: '時間', emoji: '⏰', source: '之' },
             { kana: 'ず', romaji: 'zu', row: 'ざ行', charType: 'hira', word: 'ずぼん', meaning: '褲子', emoji: '👖', source: '寸' },
             { kana: 'ぜ', romaji: 'ze', row: 'ざ行', charType: 'hira', word: 'ぜんぶ', meaning: '全部', emoji: '📦', source: '世' },
-            { kana: 'ぞ', romaji: 'zo', row: 'ざ行', charType: 'hira', word: 'ぞう', meaning: '象', emoji: '🐘', source: '曽' },
+            { kana: 'ぞ', romaji: 'zo', row: 'ざ行', charType: 'hira', word: 'ぞう', meaning: '大象', emoji: '🐘', source: '曽' },
             { kana: 'だ', romaji: 'da', row: 'だ行', charType: 'hira', word: 'だるま', meaning: '達摩', emoji: '🏮', source: '太' },
-            { kana: 'ぢ', romaji: 'ji', row: 'だ行', charType: 'hira', word: 'はなぢ', meaning: '鼻血', emoji: '🩸', source: '知' },
-            { kana: 'づ', romaji: 'zu', row: 'だ行', charType: 'hira', word: 'みず', meaning: '水', emoji: '💧', source: '川' },
             { kana: 'で', romaji: 'de', row: 'だ行', charType: 'hira', word: 'でんわ', meaning: '電話', emoji: '📞', source: '天' },
             { kana: 'ど', romaji: 'do', row: 'だ行', charType: 'hira', word: 'どあ', meaning: '門', emoji: '🚪', source: '止' },
             { kana: 'ば', romaji: 'ba', row: 'ば行', charType: 'hira', word: 'ばなな', meaning: '香蕉', emoji: '🍌', source: '波' },
@@ -106,23 +104,24 @@
             { kana: 'ぺ', romaji: 'pe', row: 'ぱ行', charType: 'hira', word: 'ぺん', meaning: '筆', emoji: '🖊️', source: '部' },
             { kana: 'ぽ', romaji: 'po', row: 'ぱ行', charType: 'hira', word: 'ぽすと', meaning: '郵筒', emoji: '📮', source: '保' },
 
-            // --- 平假名拗音 ---
+            // --- 平假名 拗音 ---
             { kana: 'きゃ', romaji: 'kya', row: 'きゃ行', charType: 'hira', word: 'きゃく', meaning: '客人', emoji: '👤', source: '幾+也' },
             { kana: 'きゅ', romaji: 'kyu', row: 'きゃ行', charType: 'hira', word: 'きゅうり', meaning: '小黃瓜', emoji: '🥒', source: '幾+由' },
             { kana: 'きょ', romaji: 'kyo', row: 'きゃ行', charType: 'hira', word: 'きょり', meaning: '距離', emoji: '📏', source: '幾+與' },
             { kana: 'しゃ', romaji: 'sha', row: 'しゃ行', charType: 'hira', word: 'しゃしん', meaning: '照片', emoji: '📷', source: '之+也' },
-            { kana: 'しゅ', romaji: 'shu', row: 'しゃ行', charType: 'hira', word: 'しゅくだい', meaning: '作業', emoji: '📝', source: '之+由' },
-            { kana: 'しょ', romaji: 'sho', row: 'しゃ行', charType: 'hira', word: 'しょくどう', meaning: '食堂', emoji: '🏢', source: '之+與' },
+            { kana: 'しゅ', romaji: 'shu', row: 'しゃ行', charType: 'hira', word: 'しゅくだい', meaning: '功課', emoji: '📝', source: '之+由' },
+            { kana: 'しょ', romaji: 'sho', row: 'しゃ行', charType: 'hira', word: 'しょくどう', meaning: '餐廳', emoji: '🏢', source: '之+與' },
+            { kana: 'ちゃ', romaji: 'cha', row: 'ちゃ行', charType: 'hira', word: 'おちゃ', meaning: '茶', emoji: '🍵', source: '知+也' },
 
-            // --- 片假名基本音 ---
+            // --- 片假名 (Kata) 基本音 ---
             { kana: 'ア', romaji: 'a', row: 'ア行', charType: 'kata', word: 'アイス', meaning: '冰淇淋', emoji: '🍦', source: '阿' },
             { kana: 'イ', romaji: 'i', row: 'ア行', charType: 'kata', word: 'イベント', meaning: '活動', emoji: '🎟️', source: '伊' },
-            { kana: 'ウ', romaji: 'u', row: 'ア行', charType: 'kata', word: 'ウェイター', meaning: '服務生', emoji: '💁', source: '宇' },
+            { kana: 'ウ', romaji: 'u', row: 'ア行', charType: 'kata', word: 'ウェイター', meaning: '服務員', emoji: '💁', source: '宇' },
             { kana: 'エ', romaji: 'e', row: 'ア行', charType: 'kata', word: 'エアコン', meaning: '空調', emoji: '❄️', source: '江' },
             { kana: 'オ', romaji: 'o', row: 'ア行', charType: 'kata', word: 'オーケー', meaning: '沒問題', emoji: '✅', source: '於' },
             { kana: 'カ', romaji: 'ka', row: 'カ行', charType: 'kata', word: 'カメラ', meaning: '相機', emoji: '📷', source: '加' },
             { kana: 'キ', romaji: 'ki', row: 'カ行', charType: 'kata', word: 'キャッシュ', meaning: '現金', emoji: '💵', source: '幾' },
-            { kana: 'ク', romaji: 'ku', row: 'カ行', charType: 'kata', word: 'クレジットカード', meaning: '信用卡', emoji: '💳', source: '久' },
+            { kana: 'ク', romaji: 'ku', row: 'カ行', charType: 'kata', word: 'カード', meaning: '卡片', emoji: '💳', source: '久' },
             { kana: 'ケ', romaji: 'ke', row: 'カ行', charType: 'kata', word: 'ケーキ', meaning: '蛋糕', emoji: '🍰', source: '介' },
             { kana: 'コ', romaji: 'ko', row: 'カ行', charType: 'kata', word: 'コーヒー', meaning: '咖啡', emoji: '☕', source: '己' },
             { kana: 'サ', romaji: 'sa', row: 'サ行', charType: 'kata', word: 'サービス', meaning: '服務', emoji: '🛎️', source: '散' },
@@ -135,12 +134,12 @@
             { kana: 'ツ', romaji: 'tsu', row: 'タ行', charType: 'kata', word: 'ツアー', meaning: '行程', emoji: '🚩', source: '川' },
             { kana: 'テ', romaji: 'te', row: 'タ行', charType: 'kata', word: 'テーブル', meaning: '桌子', emoji: '🪑', source: '天' },
             { kana: 'ト', romaji: 'to', row: 'タ行', charType: 'kata', word: 'トイレ', meaning: '廁所', emoji: '🚽', source: '當' },
-            { kana: 'ナ', romaji: 'na', row: 'ナ行', charType: 'kata', word: 'ナイフ', meaning: '餐刀', emoji: '🍴', source: '奈' },
+            { kana: 'ナ', romaji: 'na', row: 'ナ行', charType: 'kata', word: 'ナイフ', meaning: '刀子', emoji: '🍴', source: '奈' },
             { kana: 'ニ', romaji: 'ni', row: 'ナ行', charType: 'kata', word: 'ニュース', meaning: '新聞', emoji: '📰', source: '仁' },
             { kana: 'ヌ', romaji: 'nu', row: 'ナ行', charType: 'kata', word: 'ヌードル', meaning: '麵條', emoji: '🍜', source: '奴' },
             { kana: 'ネ', romaji: 'ne', row: 'ナ行', charType: 'kata', word: 'ネット', meaning: '網路', emoji: '🌐', source: '祢' },
             { kana: 'ノ', romaji: 'no', row: 'ナ行', charType: 'kata', word: 'ノート', meaning: '筆記本', emoji: '📓', source: '乃' },
-            { kana: 'ハ', romaji: 'ha', row: 'ハ行', charType: 'kata', word: 'バッグ', meaning: '背包', emoji: '🎒', source: '八' },
+            { kana: 'ハ', romaji: 'ha', row: 'ハ行', charType: 'kata', word: 'バッグ', meaning: '包包', emoji: '🎒', source: '八' },
             { kana: 'ヒ', romaji: 'hi', row: 'ハ行', charType: 'kata', word: 'ビール', meaning: '啤酒', emoji: '🍺', source: '比' },
             { kana: 'フ', romaji: 'fu', row: 'ハ行', charType: 'kata', word: 'フォーク', meaning: '叉子', emoji: '🍴', source: '不' },
             { kana: 'ヘ', romaji: 'he', row: 'ハ行', charType: 'kata', word: 'ベッド', meaning: '床', emoji: '🛌', source: '部' },
@@ -150,34 +149,35 @@
             { kana: 'ム', romaji: 'mu', row: 'マ行', charType: 'kata', word: 'ムービー', meaning: '電影', emoji: '🎬', source: '牟' },
             { kana: 'メ', romaji: 'me', row: 'マ行', charType: 'kata', word: 'メニュー', meaning: '菜單', emoji: '📋', source: '女' },
             { kana: 'モ', romaji: 'mo', row: 'マ行', charType: 'kata', word: 'モノレール', meaning: '單軌', emoji: '🚝', source: '毛' },
-            { kana: 'ヤ', romaji: 'ya', row: 'ヤ行', charType: 'kata', word: 'ヨット', meaning: '遊艇', emoji: '⛵', source: '也' },
+            { kana: 'ヤ', romaji: 'ya', row: 'ヤ行', charType: 'kata', word: 'ヤキトリ', meaning: '烤雞串', emoji: '🍢', source: '也' },
             { kana: 'ユ', romaji: 'yu', row: 'ヤ行', charType: 'kata', word: 'ユーザー', meaning: '用戶', emoji: '👤', source: '由' },
-            { kana: 'ヨ', romaji: 'yo', row: 'ヤ行', charType: 'kata', word: 'ヨーグルト', meaning: '優格', emoji: '🥛', source: '與' },
+            { kana: 'ヨ', romaji: 'yo', row: 'ヤ行', charType: 'kata', word: 'ヨット', meaning: '遊艇', emoji: '⛵', source: '與' },
             { kana: 'ラ', romaji: 'ra', row: 'ラ行', charType: 'kata', word: 'ラーメン', meaning: '拉麵', emoji: '🍜', source: '良' },
             { kana: 'リ', romaji: 'ri', row: 'ラ行', charType: 'kata', word: 'リュック', meaning: '背包', emoji: '🎒', source: '利' },
-            { kana: 'ル', romaji: 'ru', row: '拉行', charType: 'kata', word: 'ルーム', meaning: '房間', emoji: '🛌', source: '流' },
+            { kana: 'る', kana: 'ル', romaji: 'ru', row: 'ラ行', charType: 'kata', word: 'ルーム', meaning: '房間', emoji: '🛌', source: '流' },
             { kana: 'レ', romaji: 're', row: 'ラ行', charType: 'kata', word: 'レシート', meaning: '收據', emoji: '🧾', source: '禮' },
             { kana: 'ロ', romaji: 'ro', row: 'ラ行', charType: 'kata', word: 'ロビー', meaning: '大廳', emoji: '🛋️', source: '呂' },
             { kana: 'ワ', romaji: 'wa', row: 'ワ行', charType: 'kata', word: 'ワイファイ', meaning: 'Wi-Fi', emoji: '📶', source: '和' },
             { kana: 'ヲ', romaji: 'wo', row: 'ワ行', charType: 'kata', word: 'ヲ', meaning: '助詞', emoji: '📝', source: '乎' },
             { kana: 'ン', romaji: 'n', row: '鼻音', charType: 'kata', word: 'パン', meaning: '麵包', emoji: '🍞', source: '尓' },
 
-            // --- 片假名濁音 ---
+            // --- 片假名 濁音 ---
             { kana: 'ガ', romaji: 'ga', row: 'ガ行', charType: 'kata', word: 'ガイド', meaning: '導遊', emoji: '🚩', source: '加' },
             { kana: 'ギ', romaji: 'gi', row: 'ガ行', charType: 'kata', word: 'ギフト', meaning: '禮物', emoji: '🎁', source: '幾' },
             { kana: 'グ', romaji: 'gu', row: 'ガ行', charType: 'kata', word: 'グルメ', meaning: '美食', emoji: '🍽️', source: '久' },
             { kana: 'ゲ', romaji: 'ge', row: 'ガ行', charType: 'kata', word: 'ゲーム', meaning: '遊戲', emoji: '🎮', source: '介' },
             { kana: 'ゴ', romaji: 'go', row: 'ガ行', charType: 'kata', word: 'ゴルフ', meaning: '高爾夫', emoji: '⛳', source: '己' },
+            { kana: 'ザ', romaji: 'za', row: 'ザ行', charType: 'kata', word: 'ザーサイ', meaning: '榨菜', emoji: '🥗', source: '左' },
+            { kana: 'バ', romaji: 'ba', row: 'バ行', charType: 'kata', word: 'バッグ', meaning: '手提包', emoji: '👜', source: '八' },
             { kana: 'パ', romaji: 'pa', row: 'パ行', charType: 'kata', word: 'パスポート', meaning: '護照', emoji: '🛂', source: '八' },
-            { kana: 'ピ', romaji: 'pi', row: 'パ行', charType: 'kata', word: 'ピンク', meaning: '粉紅色', emoji: '💗', source: '比' },
 
-            // --- 片假名拗音 ---
+            // --- 片假名 拗音 ---
             { kana: 'キャ', romaji: 'kya', row: 'キャ行', charType: 'kata', word: 'キャンセル', meaning: '取消', emoji: '❌', source: '幾+也' },
             { kana: 'シャ', romaji: 'sha', row: 'シャ行', charType: 'kata', word: 'シャツ', meaning: '襯衫', emoji: '👕', source: '之+也' },
-            { kana: 'チョコ', romaji: 'choco', row: 'チャ行', charType: 'kata', word: 'チョコ', meaning: '巧克力', emoji: '🍫', source: '知+與' }
+            { kana: 'チャ', romaji: 'cha', row: 'チャ行', charType: 'kata', word: 'チャンス', meaning: '機會', emoji: '🎲', source: '千+也' }
         ];
 
-        // --- 完整行分類設定 ---
+        // --- 修正行分類 (排除拼字與名稱錯誤) ---
         const ROW_GROUPS_DETAILED = {
             'hira': {
                 '基本音': ['あ行', 'か行', 'さ行', 'た行', 'な行', 'は行', 'ま行', 'や行', 'ら行', 'わ行', '鼻音'],
@@ -185,7 +185,7 @@
                 '拗音': ['きゃ行', 'しゃ行', 'ちゃ行']
             },
             'kata': {
-                '基本音': ['ア行', 'カ行', 'サ行', 'タ行', '納行', 'ハ行', 'マ行', 'ヤ行', 'ラ行', 'ワ行', '鼻音'],
+                '基本音': ['ア行', 'カ行', 'サ行', 'タ行', 'ナ行', 'ハ行', 'マ行', 'ヤ行', 'ラ行', 'ワ行', '鼻音'],
                 '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', 'バ行', 'パ行'],
                 '拗音': ['キャ行', 'シャ行', 'チャ行']
             }
@@ -202,53 +202,47 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [isFlipped, setIsFlipped] = useState(false);
 
-            // --- 持久化狀態管理 ---
             const [selectedTypes, setSelectedTypes] = useState(() => {
-                const saved = localStorage.getItem('kana_selected_types_v3');
+                const saved = localStorage.getItem('kana_selected_types_v5');
                 return saved ? JSON.parse(saved) : ['hira'];
             });
 
             const [selectedRows, setSelectedRows] = useState(() => {
-                const saved = localStorage.getItem('kana_selected_rows_full_v3');
+                const saved = localStorage.getItem('kana_selected_rows_v5');
                 return saved ? JSON.parse(saved) : ['あ行'];
             });
 
             const [practiceMode, setPracticeMode] = useState(() => {
-                const saved = localStorage.getItem('kana_practice_mode_v3');
+                const saved = localStorage.getItem('kana_practice_mode_v5');
                 return saved || 'order';
             });
 
             const [showSource, setShowSource] = useState(() => {
-                const saved = localStorage.getItem('kana_show_source_v3');
+                const saved = localStorage.getItem('kana_show_source_v5');
                 return saved !== null ? JSON.parse(saved) : true;
             });
 
             const [weakList, setWeakList] = useState(() => {
-                const saved = localStorage.getItem('kana_weak_list_full_v3');
+                const saved = localStorage.getItem('kana_weak_list_v5');
                 return saved ? JSON.parse(saved) : [];
             });
 
-            useEffect(() => localStorage.setItem('kana_selected_types_v3', JSON.stringify(selectedTypes)), [selectedTypes]);
-            useEffect(() => localStorage.setItem('kana_selected_rows_full_v3', JSON.stringify(selectedRows)), [selectedRows]);
-            useEffect(() => localStorage.setItem('kana_show_source_v3', JSON.stringify(showSource)), [showSource]);
-            useEffect(() => localStorage.setItem('kana_weak_list_full_v3', JSON.stringify(weakList)), [weakList]);
-            useEffect(() => localStorage.setItem('kana_practice_mode_v3', practiceMode), [practiceMode]);
+            useEffect(() => localStorage.setItem('kana_selected_types_v5', JSON.stringify(selectedTypes)), [selectedTypes]);
+            useEffect(() => localStorage.setItem('kana_selected_rows_v5', JSON.stringify(selectedRows)), [selectedRows]);
+            useEffect(() => localStorage.setItem('kana_show_source_v5', JSON.stringify(showSource)), [showSource]);
+            useEffect(() => localStorage.setItem('kana_weak_list_v5', JSON.stringify(weakList)), [weakList]);
+            useEffect(() => localStorage.setItem('kana_practice_mode_v5', practiceMode), [practiceMode]);
 
-            // --- 生成題目邏輯 ---
             const generatePracticeSet = useCallback((targetMode = practiceMode) => {
                 let pool = [];
                 if (targetMode === 'weak') {
                     pool = KANA_DATA.filter(i => weakList.includes(i.kana));
                 } else {
                     pool = KANA_DATA.filter(i => selectedTypes.includes(i.charType) && selectedRows.includes(i.row));
-                    if (targetMode === 'shuffle') {
-                        pool = [...pool].sort(() => Math.random() - 0.5);
-                    }
+                    if (targetMode === 'shuffle') pool = [...pool].sort(() => Math.random() - 0.5);
                 }
                 setCards(pool.length > 0 ? pool : [KANA_DATA[0]]);
-                setCurrentIndex(0);
-                setIsFlipped(false);
-                setView('practice');
+                setCurrentIndex(0); setIsFlipped(false); setView('practice');
             }, [selectedTypes, selectedRows, practiceMode, weakList]);
 
             useEffect(() => { generatePracticeSet(); }, []);
@@ -267,16 +261,13 @@
                     if (currentIndex === cards.length - 1) {
                         if (practiceMode === 'shuffle') generatePracticeSet('shuffle');
                         else setCurrentIndex(0);
-                    } else {
-                        setCurrentIndex(prev => prev + 1);
-                    }
+                    } else setCurrentIndex(prev => prev + 1);
                 }, 50);
             };
 
             const togglePracticeMode = () => {
                 const nextMode = practiceMode === 'order' ? 'shuffle' : 'order';
-                setPracticeMode(nextMode);
-                generatePracticeSet(nextMode);
+                setPracticeMode(nextMode); generatePracticeSet(nextMode);
             };
 
             const toggleWeak = (kana) => setWeakList(p => p.includes(kana) ? p.filter(k => k !== kana) : [...p, kana]);
@@ -287,12 +278,12 @@
                 <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-10 flex flex-col">
                     <header className="bg-white border-b px-4 py-2 sticky top-0 z-20 flex justify-between items-center shadow-sm h-14 shrink-0">
                         <div className="flex flex-col">
-                            <h1 className="text-lg font-bold text-indigo-600 leading-none">Kana Master</h1>
-                            <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-0.5">Travel All-Access</span>
+                            <h1 className="text-lg font-bold text-indigo-600 leading-none tracking-tight">Kana Master</h1>
+                            <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-0.5">Travel Full Access</span>
                         </div>
                         <div className="flex gap-1">
                             {weakList.length > 0 && view !== 'settings' && (
-                                <button onClick={() => generatePracticeSet('weak')} className="p-2 text-amber-500 transition-transform active:scale-90">
+                                <button onClick={() => generatePracticeSet('weak')} className="p-2 text-amber-500 active:scale-90 transition-transform">
                                     <div className="relative"><Icon name="zap" size={20} /><span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] w-3 h-3 rounded-full flex items-center justify-center font-bold">{weakList.length}</span></div>
                                 </button>
                             )}
@@ -314,7 +305,7 @@
                                 </div>
 
                                 <div className={`relative h-[480px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                    <div className={`absolute inset-0 bg-white rounded-[2rem] shadow-lg flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
+                                    <div className={`absolute inset-0 bg-white rounded-[2.5rem] shadow-lg flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                         <div className="h-1/3 flex items-center justify-center bg-indigo-50/30 relative">
                                             <span className="text-8xl animate-bounce-slow drop-shadow-sm">{currentCard.emoji}</span>
                                             {showSource && <div className="absolute top-3 right-4 bg-white/90 backdrop-blur px-2.5 py-0.5 rounded-full shadow-sm border border-indigo-100 flex items-center gap-1"><span className="text-[10px] font-bold text-indigo-400">源自</span><span className="text-lg font-black text-indigo-600">{currentCard.source}</span></div>}
@@ -323,24 +314,27 @@
                                         </div>
                                         <div className="flex-1 flex flex-col items-center justify-center p-4">
                                             <span className={`${currentCard.kana?.length > 1 ? 'text-7xl' : 'text-8xl'} font-black text-slate-800 leading-none`}>{currentCard.kana}</span>
-                                            <div className="mt-4 text-center"><p className="text-indigo-600 font-bold text-xl tracking-tight">{currentCard.word}</p><p className="text-slate-400 text-[11px] font-medium">{currentCard.meaning}</p></div>
+                                            <div className="mt-4 text-center">
+                                                <p className="text-indigo-600 font-bold text-xl tracking-tight">{currentCard.word}</p>
+                                                <p className="text-slate-400 text-[11px] font-medium">{currentCard.meaning}</p>
+                                            </div>
                                         </div>
                                         <div className="h-12 flex items-center justify-center text-slate-300 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-slate-50">點擊看讀音</div>
                                     </div>
-                                    <div className={`absolute inset-0 bg-white rounded-[2rem] shadow-lg flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
-                                        <div className="h-1/4 flex items-center justify-center bg-slate-50/50 relative"><span className="text-7xl opacity-30 grayscale">{currentCard.emoji}</span><button onClick={(e) => { e.stopPropagation(); toggleWeak(currentCard.kana); }} className={`absolute top-4 right-4 p-3 rounded-2xl border transition-all ${isWeak ? 'bg-amber-500 border-amber-500 text-white shadow-amber-100' : 'bg-white border-slate-200 text-slate-400'}`}><Icon name="zap" size={20} /></button></div>
+                                    <div className={`absolute inset-0 bg-white rounded-[2.5rem] shadow-lg flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
+                                        <div className="h-1/4 flex items-center justify-center bg-slate-50/50 relative"><span className="text-7xl opacity-30 grayscale">{currentCard.emoji}</span><button onClick={(e) => { e.stopPropagation(); toggleWeak(currentCard.kana); }} className={`absolute top-4 right-4 p-3 rounded-2xl border transition-all ${isWeak ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400'}`}><Icon name="zap" size={20} /></button></div>
                                         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                                             <div className="mb-4"><div className="flex items-baseline justify-center gap-3"><span className="text-7xl font-black text-indigo-600 uppercase tracking-tighter drop-shadow-sm">{currentCard.romaji}</span><span className="text-3xl font-bold text-slate-300">({currentCard.kana})</span></div></div>
                                             <div className="flex flex-col items-center gap-2 mb-4"><div className="px-5 py-1.5 bg-indigo-600 rounded-xl shadow-md"><span className="text-white font-black text-xl">{currentCard.word}</span></div><span className="text-slate-500 font-black text-sm uppercase tracking-tight">[{currentCard.meaning}]</span></div>
-                                            <div className="flex items-center gap-6 mt-2"><div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><span className="text-[10px] font-bold text-slate-400 uppercase">Origin</span><span className="text-lg font-black text-slate-600">{currentCard.source}</span></div><button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="bg-indigo-600 text-white p-4 rounded-full shadow-lg shadow-indigo-100 active:scale-90 transition-transform"><Icon name="volume-2" size={28} /></button></div>
+                                            <div className="flex items-center gap-6 mt-2"><div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><span className="text-[10px] font-bold text-slate-400 uppercase">Origin</span><span className="text-lg font-black text-slate-600">{currentCard.source}</span></div><button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="bg-indigo-600 text-white p-4 rounded-full shadow-lg active:scale-90 transition-transform"><Icon name="volume-2" size={28} /></button></div>
                                         </div>
                                         <div className="h-12 flex items-center justify-center text-indigo-200 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-indigo-50">點擊回到正面</div>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-3 px-1 mt-auto pb-4 shrink-0">
-                                    <button onClick={handleNext} className="flex-[3] bg-white border border-slate-200 py-4 rounded-2xl font-black text-slate-600 active:bg-slate-100 transition-all shadow-sm text-sm">NEXT KANA</button>
-                                    <button onClick={togglePracticeMode} className={`flex-[2] py-4 rounded-2xl font-black text-white shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 ${practiceMode === 'order' ? 'bg-slate-900' : 'bg-indigo-600'}`}><div className="flex items-center gap-1.5"><Icon name={practiceMode === 'order' ? "list-ordered" : "shuffle"} size={16} /><span className="text-[10px] uppercase tracking-tighter">{practiceMode === 'order' ? 'Order' : 'Shuffle'}</span></div><span className="text-[9px] opacity-60 font-medium">SWITCH MODE</span></button>
+                                    <button onClick={handleNext} className="flex-[3] bg-white border border-slate-200 py-4 rounded-2xl font-black text-slate-600 active:bg-slate-100 shadow-sm text-sm">NEXT KANA</button>
+                                    <button onClick={togglePracticeMode} className={`flex-[2] py-4 rounded-2xl font-black text-white shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 ${practiceMode === 'order' ? 'bg-slate-900' : 'bg-indigo-600'}`}><div className="flex items-center gap-1.5"><Icon name={practiceMode === 'order' ? "list-ordered" : "shuffle"} size={16} /><span className="text-[10px] uppercase tracking-tighter">{practiceMode === 'order' ? 'Order' : 'Shuffle'}</span></div><span className="text-[9px] opacity-60 font-medium tracking-tight">SWITCH MODE</span></button>
                                 </div>
                             </div>
                         )}
@@ -348,8 +342,8 @@
                         {view === 'settings' && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4 pb-24">
                                 <section className="space-y-3">
-                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700"><div className="w-1 h-5 bg-indigo-500 rounded-full"></div>記憶偏好</h2>
-                                    <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm cursor-pointer"><div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示起源漢字</span><span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Show Etymology</span></div><input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600 cursor-pointer" /></label>
+                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700"><div className="w-1 h-5 bg-indigo-500 rounded-full"></div>偏好設定</h2>
+                                    <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm cursor-pointer"><div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示起源漢字</span><span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Show Etymology</span></div><input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
                                 </section>
 
                                 <section className="space-y-3">
@@ -362,11 +356,11 @@
                                 </section>
 
                                 <section className="space-y-3">
-                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700"><div className="w-1 h-5 bg-indigo-500 rounded-full"></div>練習範圍 (行)</h2>
+                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700"><div className="w-1 h-5 bg-indigo-500 rounded-full"></div>練習範圍</h2>
                                     <div className="space-y-8">
                                         {selectedTypes.map(type => (
-                                            <div key={type} className="space-y-4">
-                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 flex items-center gap-2 border-b border-indigo-50 pb-2">{type === 'hira' ? '平假名類別' : '片假名類別'}</p>
+                                            <div key={type} className="space-y-6">
+                                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest px-1 flex items-center gap-2 border-b border-indigo-50 pb-2">{type === 'hira' ? '平假名選單' : '片假名選單'}</p>
                                                 {Object.entries(ROW_GROUPS_DETAILED[type]).map(([subLabel, rows]) => (
                                                     <div key={subLabel} className="space-y-2">
                                                         <span className="text-[10px] font-bold text-slate-400 ml-1">{subLabel}</span>
@@ -383,7 +377,7 @@
                                     </div>
                                 </section>
                                 
-                                <button onClick={() => generatePracticeSet()} disabled={selectedTypes.length === 0 || selectedRows.length === 0} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"><Icon name="play" size={20} /> 更新並開始</button>
+                                <button onClick={() => generatePracticeSet()} disabled={selectedTypes.length === 0 || selectedRows.length === 0} className="w-full bg-indigo-600 text-white py-5 rounded-[2rem] font-black shadow-xl flex items-center justify-center gap-3 active:scale-95 disabled:opacity-30 transition-all shadow-indigo-100"><Icon name="play" size={20} /> 更新練習範圍</button>
                             </div>
                         )}
                     </main>
