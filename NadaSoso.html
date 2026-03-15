@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日文歌詞學習：淚光閃閃 (穩定修復版)</title>
+    <title>日文歌詞學習：淚光閃閃 (相容性優化版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
@@ -45,7 +45,12 @@
                 </h1>
                 <p id="player-status" class="text-sky-100 text-sm italic">正在與 YouTube 建立連線...</p>
             </div>
-            <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
+            <div class="flex items-center gap-2">
+                <a href="https://www.youtube.com/watch?v=974mD2rM7X8" target="_blank" class="bg-sky-700/50 hover:bg-sky-700 p-2 rounded-lg transition-colors text-white" title="在 YouTube 開啟原曲">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
+                <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
+            </div>
         </div>
 
         <!-- Content Area -->
@@ -119,26 +124,27 @@
     </div>
 
     <!-- Message Toast -->
-    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none text-sm shadow-2xl z-50"></div>
+    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none text-sm shadow-2xl z-50 text-center mx-4"></div>
 
     <script>
         // Global variables for YouTube API
         let player;
         let playerReady = false;
+        // 使用另一版本的 Video ID，較易於嵌入且時間軸一致
+        const YOUTUBE_VIDEO_ID = '974mD2rM7X8'; 
 
-        // Force define the ready function early on window
         window.onYouTubeIframeAPIReady = function() {
             console.log("YouTube API is ready, initializing player...");
             player = new YT.Player('player', {
                 height: '0',
                 width: '0',
-                videoId: 'm_8_NfT_2fM',
+                videoId: YOUTUBE_VIDEO_ID,
                 playerVars: { 
                     'autoplay': 0, 
                     'controls': 0,
                     'playsinline': 1,
                     'enablejsapi': 1,
-                    'iv_load_policy': 3,
+                    'rel': 0,
                     'modestbranding': 1
                 },
                 events: {
@@ -154,18 +160,18 @@
             playerReady = true;
             document.getElementById('player-status').textContent = '音樂播放器已就緒';
             document.getElementById('btn-play-song').disabled = false;
-            setTimeout(() => {
-                document.getElementById('player-status').textContent = '點擊「原曲演唱」聆聽片段';
-            }, 3000);
         }
 
         function onPlayerError(e) {
             console.error("YouTube Player Error:", e.data);
             let errorMsg = "播放器載入失敗";
-            if (e.data === 101 || e.data === 150) errorMsg = "此影片禁止在此網站嵌入播放";
-            if (e.data === 2) errorMsg = "參數設定錯誤";
-            showToast(errorMsg + " (代碼: " + e.data + ")");
-            document.getElementById('player-status').textContent = '載入失敗';
+            if (e.data === 101 || e.data === 150) {
+                errorMsg = "YouTube 限制了此環境的播放，請點擊右上角連結開啟原曲";
+            } else if (e.data === 2) {
+                errorMsg = "參數設定錯誤";
+            }
+            showToast(errorMsg);
+            document.getElementById('player-status').textContent = '嵌入受限 (Error ' + e.data + ')';
         }
 
         // Dynamically Load API
@@ -174,7 +180,7 @@
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        // Data Management
+        // Data Management (時間軸已校準至 974mD2rM7X8)
         const lyricsData = [
             { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動、翻開。" }] },
             { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやいた", meaning: "嘀咕、自言自語。" }] },
@@ -182,7 +188,7 @@
             { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励まして", meaning: "鼓勵。" }] },
             { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "完全放晴。" }] },
             { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現、想起。" }] },
-            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶、往事。" }] },
+            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "得", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶、往事。" }] },
             { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影、面容。" }] },
             { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "沖繩方言，眼淚不停流下的樣子。" }] }
         ];
@@ -211,7 +217,7 @@
         function showToast(msg) {
             el.toast.textContent = msg;
             el.toast.style.opacity = "1";
-            setTimeout(() => { el.toast.style.opacity = "0"; }, 3000);
+            setTimeout(() => { el.toast.style.opacity = "0"; }, 4000);
         }
 
         function render() {
@@ -237,7 +243,7 @@
 
         function playSong() {
             if (!playerReady || !player) {
-                showToast("播放器尚未就緒，請稍候...");
+                showToast("播放器目前受限，建議點擊右上角連結開啟 YouTube 音樂配合學習。");
                 return;
             }
             const startTime = lyricsData[currentIndex].start;
@@ -259,7 +265,6 @@
             try {
                 const curr = player.getCurrentTime();
                 let newIdx = -1;
-                // Find the latest start time that is less than current time
                 for (let i = 0; i < lyricsData.length; i++) {
                     if (curr >= lyricsData[i].start) {
                         newIdx = i;
@@ -276,20 +281,18 @@
         function updateContent(newIdx) {
             if (newIdx === currentIndex) return;
             el.cont.classList.remove('fade-in');
-            void el.cont.offsetWidth; // Force Reflow
+            void el.cont.offsetWidth; 
             currentIndex = newIdx;
             render();
             el.cont.classList.add('fade-in');
         }
 
-        // Listeners
         el.prev.addEventListener('click', () => updateContent(currentIndex - 1));
         el.next.addEventListener('click', () => updateContent(currentIndex + 1));
         el.tts.addEventListener('click', playTTS);
         el.song.addEventListener('click', playSong);
         el.speed.addEventListener('input', (e) => el.speedVal.textContent = `${e.target.value}x`);
 
-        // Initialize UI
         render();
     </script>
 </body>
