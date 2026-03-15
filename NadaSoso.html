@@ -2,280 +2,282 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日文歌詞學習：淚光閃閃 (相容性優化版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日文學習：淚光閃閃</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif; }
+        body { font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif; -webkit-tap-highlight-color: transparent; }
         ruby rt { font-family: 'Noto Sans JP', sans-serif; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        /* 美化滑桿 */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
         input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%;
-            background: #0284c7; cursor: pointer; margin-top: -6px;
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+            background: #0284c7; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: -8px;
         }
         input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; cursor: pointer; background: #e2e8f0; border-radius: 3px;
+            width: 100%; height: 8px; cursor: pointer; background: #e2e8f0; border-radius: 4px;
         }
-        #youtube-player-container {
-            position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;
-            left: -9999px; top: -9999px;
+        .modal-enter { animation: modalSlide 0.3s ease-out; }
+        @keyframes modalSlide {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
         }
     </style>
 </head>
-<body class="bg-sky-50 min-h-screen flex flex-col items-center justify-center p-4 text-slate-800">
+<body class="bg-slate-50 min-h-screen flex items-center justify-center font-sans text-slate-800">
 
-    <!-- YouTube Hidden Player Container -->
-    <div id="youtube-player-container">
-        <div id="player"></div>
-    </div>
-
-    <div class="max-w-2xl w-full bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col border border-sky-100">
+    <!-- 主學習容器 -->
+    <div class="w-full max-w-md h-screen md:h-[844px] bg-white md:rounded-[40px] shadow-2xl relative overflow-hidden flex flex-col">
         
-        <!-- Header -->
-        <div class="bg-sky-600 p-6 text-white flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold flex items-center gap-2">
-                    <i data-lucide="music"></i> 淚光閃閃 (音樂同步版)
-                </h1>
-                <p id="player-status" class="text-sky-100 text-sm italic">正在與 YouTube 建立連線...</p>
+        <!-- Top Bar -->
+        <div class="px-6 pt-10 pb-4 flex justify-between items-center bg-white/80 backdrop-blur sticky top-0 z-10">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-bold text-sky-500 uppercase tracking-[0.2em]">Now Learning</span>
+                <h1 class="text-xl font-bold text-slate-900">涙そうそう</h1>
             </div>
-            <div class="flex items-center gap-2">
-                <a href="https://www.youtube.com/watch?v=974mD2rM7X8" target="_blank" class="bg-sky-700/50 hover:bg-sky-700 p-2 rounded-lg transition-colors text-white" title="在 YouTube 開啟原曲">
-                    <i data-lucide="external-link" class="w-4 h-4"></i>
-                </a>
-                <div id="page-indicator" class="bg-sky-500 px-3 py-1 rounded-full text-sm font-mono">1 / 9</div>
+            <button id="btn-open-settings" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 active:scale-90 transition-transform">
+                <i data-lucide="settings"></i>
+            </button>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div class="px-6 py-2">
+            <div class="h-1 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                <div id="progress-bar" class="h-full bg-sky-500 transition-all duration-300" style="width: 11%"></div>
+            </div>
+            <div class="flex justify-between mt-2 text-[10px] font-mono text-slate-400">
+                <span id="page-num">Page 01</span>
+                <span>Total 09</span>
             </div>
         </div>
 
-        <!-- Content Area -->
-        <div id="content-container" class="flex-grow p-8 flex flex-col items-center justify-center min-h-[500px] fade-in">
+        <!-- Lyrics Canvas (中心學習區) -->
+        <div id="content-container" class="flex-grow px-8 flex flex-col justify-center text-center fade-in">
+            <div class="mb-10">
+                <h2 id="lyric-japanese" class="text-4xl md:text-5xl font-bold leading-[1.8] text-slate-900 mb-6 break-words"></h2>
+                <p id="lyric-romaji" class="text-lg font-mono text-slate-400 italic tracking-tight"></p>
+            </div>
             
-            <!-- Controls: Speech & Music -->
-            <div class="mb-6 flex flex-wrap justify-center gap-4 w-full">
-                <!-- AI Speech -->
-                <div class="flex flex-col items-center gap-2 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <button id="btn-play-tts" class="bg-white text-sky-600 p-4 rounded-full hover:bg-sky-100 transition-all shadow-sm active:scale-90">
-                        <i data-lucide="bot"></i>
-                    </button>
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AI 發音</span>
-                </div>
-
-                <!-- Actual Song -->
-                <div class="flex flex-col items-center gap-2 bg-sky-50 p-4 rounded-2xl border border-sky-100">
-                    <button id="btn-play-song" class="bg-sky-600 text-white p-4 rounded-full hover:bg-sky-700 transition-all shadow-md active:scale-90 disabled:bg-slate-300">
-                        <i data-lucide="play-circle"></i>
-                    </button>
-                    <span class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">原曲演唱</span>
-                </div>
-            </div>
-
-            <!-- Speed & Sync Controls -->
-            <div class="w-full max-w-xs mb-8 space-y-4">
-                <div class="space-y-1">
-                    <div class="flex justify-between text-[10px] text-slate-400 font-bold">
-                        <span>AI 語速 (TTS Speed)</span>
-                        <span id="speed-value" class="text-sky-600">0.6x</span>
-                    </div>
-                    <input type="range" id="speed-control" min="0.3" max="1.5" step="0.1" value="0.6" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                </div>
-                
-                <label class="flex items-center justify-center gap-2 cursor-pointer group">
-                    <input type="checkbox" id="sync-mode" class="w-4 h-4 text-sky-600 rounded">
-                    <span class="text-xs text-slate-500 group-hover:text-sky-600 transition-colors">自動跟隨音樂播放 (Sync)</span>
-                </label>
-            </div>
-
-            <!-- Main Lyrics -->
-            <div class="mb-8 text-center">
-                <h2 id="lyric-japanese" class="text-3xl md:text-4xl font-bold mb-4 leading-relaxed tracking-wide min-h-[4rem]"></h2>
-                <p id="lyric-romaji" class="text-slate-400 font-mono italic text-lg"></p>
-            </div>
-
-            <!-- Translation -->
-            <div class="bg-sky-50 rounded-xl px-6 py-4 mb-8 w-full border-l-4 border-sky-400 shadow-sm">
-                <p id="lyric-chinese" class="text-xl text-sky-900 font-medium italic"></p>
-            </div>
-
-            <!-- Vocabulary Section -->
-            <div class="w-full">
-                <h3 class="flex items-center gap-2 text-slate-500 font-bold mb-3 uppercase tracking-wider text-sm border-b pb-1">
-                    <i data-lucide="book-open" class="w-4 h-4"></i> 重點單字解析
-                </h3>
-                <div id="vocab-list" class="space-y-3"></div>
+            <div class="relative py-6 px-4 border-y border-slate-50 italic text-sky-900 font-medium text-lg leading-relaxed">
+                <i data-lucide="quote" class="absolute -top-2 -left-2 w-6 h-6 text-sky-100 -scale-x-100"></i>
+                <span id="lyric-chinese"></span>
             </div>
         </div>
 
-        <!-- Pagination Controls -->
-        <div class="p-6 bg-slate-50 flex justify-between items-center border-t border-slate-100">
-            <button id="btn-prev" class="flex items-center gap-1 px-4 py-2 rounded-xl text-sky-600 hover:bg-sky-100 disabled:text-slate-300 transition-all font-bold">
-                <i data-lucide="chevron-left"></i> 上一句
+        <!-- Vocabulary Card (底部解析) -->
+        <div class="px-6 py-4 bg-slate-50/50">
+            <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-3 h-3"></i> Vocabulary Note
+            </h3>
+            <div id="vocab-list" class="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+                <!-- JS Injected Cards -->
+            </div>
+        </div>
+
+        <!-- Main Action Bar (核心控制) -->
+        <div class="px-6 py-8 flex justify-between items-center bg-white border-t border-slate-100">
+            <button id="btn-prev" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 disabled:opacity-30 active:scale-90 transition-all">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
             </button>
-            <div id="progress-dots" class="flex gap-1"></div>
-            <button id="btn-next" class="flex items-center gap-1 px-4 py-2 rounded-xl text-sky-600 hover:bg-sky-100 disabled:text-slate-300 transition-all font-bold">
-                下一句 <i data-lucide="chevron-right"></i>
+
+            <div class="flex gap-4">
+                <button id="btn-play-tts" class="w-16 h-16 flex items-center justify-center rounded-3xl bg-sky-50 text-sky-600 active:scale-90 transition-all shadow-sm">
+                    <i data-lucide="bot" class="w-8 h-8"></i>
+                </button>
+                <button id="btn-play-song" disabled class="w-16 h-16 flex items-center justify-center rounded-3xl bg-sky-600 text-white active:scale-90 transition-all shadow-lg shadow-sky-200 disabled:bg-slate-200 disabled:shadow-none">
+                    <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                </button>
+            </div>
+
+            <button id="btn-next" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-50 text-slate-400 disabled:opacity-30 active:scale-90 transition-all">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
             </button>
+        </div>
+
+        <!-- Settings Modal (全螢幕設定) -->
+        <div id="settings-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end">
+            <div class="w-full bg-white rounded-t-[40px] p-8 modal-enter">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="text-xl font-bold flex items-center gap-2">
+                        <i data-lucide="sliders"></i> 學習設定
+                    </h3>
+                    <button id="btn-close-settings" class="p-2 text-slate-400">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-8 max-h-[60vh] overflow-y-auto pb-10">
+                    <!-- MP3 Upload -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-bold text-slate-500 uppercase tracking-widest">音樂檔案</label>
+                        <div id="file-upload-zone" class="w-full border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center hover:bg-sky-50 transition-colors cursor-pointer group">
+                            <input type="file" id="audio-file" accept="audio/*" class="hidden">
+                            <div id="upload-ui-default">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-sky-400 mb-2"></i>
+                                <p class="text-sm text-slate-500">點擊上傳《淚光閃閃》MP3</p>
+                            </div>
+                            <div id="upload-ui-done" class="hidden items-center justify-center gap-2">
+                                <i data-lucide="check-circle" class="text-green-500"></i>
+                                <span id="file-name" class="text-sm font-medium text-slate-700 truncate max-w-[150px]"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Speed & Sync -->
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="space-y-4">
+                            <div class="flex justify-between">
+                                <span class="text-sm font-medium">AI 語速 (Speed)</span>
+                                <span id="speed-value" class="text-sky-600 font-bold">0.6x</span>
+                            </div>
+                            <input type="range" id="speed-control" min="0.3" max="1.5" step="0.1" value="0.6" class="w-full">
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="flex justify-between">
+                                <span class="text-sm font-medium text-rose-500">時間校準 (Offset)</span>
+                                <span id="offset-value" class="text-rose-500 font-bold">0.0s</span>
+                            </div>
+                            <input type="range" id="offset-control" min="-10" max="10" step="0.5" value="0" class="w-full">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold">自動同步翻頁</span>
+                            <span class="text-[10px] text-slate-400">音樂播放時自動顯示對應歌詞</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sync-mode" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                        </label>
+                    </div>
+
+                    <button id="btn-reset" class="w-full py-4 rounded-2xl border border-rose-100 text-rose-500 text-sm font-bold active:bg-rose-50 transition-colors">
+                        清除所有快取資料
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Message Toast -->
-    <div id="toast" class="fixed bottom-10 bg-slate-800 text-white px-6 py-3 rounded-full opacity-0 transition-opacity duration-300 pointer-events-none text-sm shadow-2xl z-50 text-center mx-4"></div>
+    <audio id="main-audio" class="hidden"></audio>
+    <div id="toast" class="fixed top-12 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-6 py-3 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none text-xs font-bold z-[100] shadow-xl"></div>
 
     <script>
-        // Global variables for YouTube API
-        let player;
-        let playerReady = false;
-        // 使用另一版本的 Video ID，較易於嵌入且時間軸一致
-        const YOUTUBE_VIDEO_ID = '974mD2rM7X8'; 
-
-        window.onYouTubeIframeAPIReady = function() {
-            console.log("YouTube API is ready, initializing player...");
-            player = new YT.Player('player', {
-                height: '0',
-                width: '0',
-                videoId: YOUTUBE_VIDEO_ID,
-                playerVars: { 
-                    'autoplay': 0, 
-                    'controls': 0,
-                    'playsinline': 1,
-                    'enablejsapi': 1,
-                    'rel': 0,
-                    'modestbranding': 1
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError
-                }
-            });
-        };
-
-        function onPlayerReady(event) {
-            console.log("Player Ready");
-            playerReady = true;
-            document.getElementById('player-status').textContent = '音樂播放器已就緒';
-            document.getElementById('btn-play-song').disabled = false;
-        }
-
-        function onPlayerError(e) {
-            console.error("YouTube Player Error:", e.data);
-            let errorMsg = "播放器載入失敗";
-            if (e.data === 101 || e.data === 150) {
-                errorMsg = "YouTube 限制了此環境的播放，請點擊右上角連結開啟原曲";
-            } else if (e.data === 2) {
-                errorMsg = "參數設定錯誤";
-            }
-            showToast(errorMsg);
-            document.getElementById('player-status').textContent = '嵌入受限 (Error ' + e.data + ')';
-        }
-
-        // Dynamically Load API
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        // Data Management (時間軸已校準至 974mD2rM7X8)
-        const lyricsData = [
-            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的。" }, { word: "めくり", meaning: "翻動、翻開。" }] },
-            { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやいた", meaning: "嘀咕、自言自語。" }] },
-            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中、胸口。" }] },
-            { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励まして", meaning: "鼓勵。" }] },
-            { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "完全放晴。" }] },
-            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現、想起。" }] },
-            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "得", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "想い出", meaning: "回憶、往事。" }] },
-            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影、面容。" }] },
-            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "沖繩方言，眼淚不停流下的樣子。" }] }
-        ];
-
+        const audioInput = document.getElementById('audio-file');
+        const audioPlayer = document.getElementById('main-audio');
+        const uploadZone = document.getElementById('file-upload-zone');
+        
         let currentIndex = 0;
-        let syncInterval;
+        let offset = 0;
+
+        const lyricsData = [
+            { start: 22, japanese: "古いアルバムめくり", ruby: [{ kanji: "古", kana: "ふる" }, { text: "い" }, { text: "アルバム" }, { kanji: "めく", kana: "めく" }, { text: "り" }], romaji: "furui arubamu mekuri", chinese: "翻著老舊的相簿", vocab: [{ word: "古い", meaning: "老舊的、古老的。" }, { word: "めくり", meaning: "翻動、翻開。" }] },
+            { start: 29, japanese: "ありがとうってつぶやいた", ruby: [{ text: "ありがとうって" }, { kanji: "つぶや", kana: "つぶや" }, { text: "いた" }], romaji: "arigatou tte tsubuyaita", chinese: "輕聲地說了聲謝謝", vocab: [{ word: "つぶやく", meaning: "嘀咕、自言自語。" }] },
+            { start: 37, japanese: "いつもいつも胸の中", ruby: [{ text: "いつもいつも" }, { kanji: "胸", kana: "むね" }, { text: "の" }, { kanji: "中", kana: "なか" }], romaji: "itsumo itsumo mune no naka", chinese: "你總是在我的心中", vocab: [{ word: "胸 (むね)", meaning: "心中、胸膛。" }] },
+            { start: 45, japanese: "励ましてくれる人よ", ruby: [{ kanji: "励", kana: "はげ" }, { text: "ましてくれる" }, { kanji: "人", kana: "ひと" }, { text: "よ" }], romaji: "hagemashite kureru hito yo", chinese: "那個一直鼓勵著我的人啊", vocab: [{ word: "励ます", meaning: "鼓勵、激勵。" }] },
+            { start: 58, japanese: "晴れ渡る日も 雨の日も", ruby: [{ kanji: "晴", kana: "は" }, { text: "れ" }, { kanji: "渡", kana: "わた" }, { text: "る" }, { kanji: "日", kana: "ひ" }, { text: "も " }, { kanji: "雨", kana: "あめ" }, { text: "の" }, { kanji: "日", kana: "ひ" }, { text: "も" }], romaji: "harewataru hi mo ame no hi mo", chinese: "無論是晴朗的日子，還是下雨的日子", vocab: [{ word: "晴れ渡る", meaning: "天空放晴。" }] },
+            { start: 67, japanese: "浮かぶあの笑顔", ruby: [{ kanji: "浮", kana: "う" }, { text: "かぶあの" }, { kanji: "笑顔", kana: "えがお" }], romaji: "ukabu ano egao", chinese: "腦海總浮現那抹笑容", vocab: [{ word: "浮かぶ", meaning: "浮現、想起。" }] },
+            { start: 76, japanese: "想い出遠くあせても", ruby: [{ kanji: "想", kana: "おも" }, { text: "い" }, { kanji: "出", kana: "で" }, { kanji: "遠", kana: "とお" }, { text: "くあせても" }], romaji: "omoide tooku asetemo", chinese: "即便回憶已遙遠褪色", vocab: [{ word: "あせる", meaning: "褪色、淡去。" }] },
+            { start: 83, japanese: "おもかげ探して", ruby: [{ text: "おもかげ" }, { kanji: "探", kana: "さが" }, { text: "して" }], romaji: "omokage sagashite", chinese: "依然找尋著你的身影", vocab: [{ word: "おもかげ", meaning: "身影、面容。" }] },
+            { start: 91, japanese: "よみがえる日は 涙そうそう", ruby: [{ text: "よみがえる" }, { kanji: "日", kana: "ひ" }, { text: "は " }, { kanji: "涙", kana: "なみだ" }, { text: "そうそう" }], romaji: "yomigaeru hi wa nada soso", chinese: "每當憶起你的日子 總是淚光閃閃", vocab: [{ word: "そうそう", meaning: "沖繩方言，淚流不止。" }] }
+        ];
 
         const el = {
             jp: document.getElementById('lyric-japanese'),
             rm: document.getElementById('lyric-romaji'),
             cn: document.getElementById('lyric-chinese'),
             v: document.getElementById('vocab-list'),
-            pg: document.getElementById('page-indicator'),
-            dt: document.getElementById('progress-dots'),
+            pg: document.getElementById('page-num'),
+            pb: document.getElementById('progress-bar'),
             prev: document.getElementById('btn-prev'),
             next: document.getElementById('btn-next'),
             tts: document.getElementById('btn-play-tts'),
             song: document.getElementById('btn-play-song'),
             speed: document.getElementById('speed-control'),
             speedVal: document.getElementById('speed-value'),
+            offset: document.getElementById('offset-control'),
+            offsetVal: document.getElementById('offset-value'),
             sync: document.getElementById('sync-mode'),
             cont: document.getElementById('content-container'),
-            toast: document.getElementById('toast')
+            toast: document.getElementById('toast'),
+            upDefault: document.getElementById('upload-ui-default'),
+            upDone: document.getElementById('upload-ui-done'),
+            fileName: document.getElementById('file-name'),
+            modal: document.getElementById('settings-modal'),
+            btnOpen: document.getElementById('btn-open-settings'),
+            btnClose: document.getElementById('btn-close-settings'),
+            btnReset: document.getElementById('btn-reset')
         };
 
+        // --- IndexedDB & LocalStorage ---
+        const DB_NAME = "NadaSosoLearning";
+        const STORE_NAME = "AudioStore";
+        let db;
+
+        const dbReq = indexedDB.open(DB_NAME, 1);
+        dbReq.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+        dbReq.onsuccess = (e) => {
+            db = e.target.result;
+            loadStoredData();
+        };
+
+        function loadStoredData() {
+            const tx = db.transaction(STORE_NAME, "readonly");
+            const getReq = tx.objectStore(STORE_NAME).get("audio");
+            getReq.onsuccess = () => {
+                if (getReq.result) {
+                    const { blob, name } = getReq.result;
+                    audioPlayer.src = URL.createObjectURL(blob);
+                    el.upDefault.classList.add('hidden');
+                    el.fileName.textContent = name;
+                    el.upDone.classList.remove('hidden');
+                    el.upDone.classList.add('flex');
+                    el.song.disabled = false;
+                }
+            };
+            // Offset
+            const savedOffset = localStorage.getItem('nada-offset');
+            if (savedOffset) {
+                offset = parseFloat(savedOffset);
+                el.offset.value = offset;
+                el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
+            }
+        }
+
+        // --- UI Logic ---
         function showToast(msg) {
             el.toast.textContent = msg;
             el.toast.style.opacity = "1";
-            setTimeout(() => { el.toast.style.opacity = "0"; }, 4000);
+            setTimeout(() => el.toast.style.opacity = "0", 3000);
         }
 
         function render() {
             const d = lyricsData[currentIndex];
-            el.jp.innerHTML = d.ruby.map(p => p.kanji ? `<ruby class="mx-0.5">${p.kanji}<rt class="text-sm text-sky-600 font-medium">${p.kana}</rt></ruby>` : `<span>${p.text}</span>`).join('');
+            el.jp.innerHTML = d.ruby.map(p => p.kanji ? `<ruby class="mx-0.5">${p.kanji}<rt class="text-[0.45em] text-sky-500 font-bold">${p.kana}</rt></ruby>` : `<span>${p.text}</span>`).join('');
             el.rm.textContent = d.romaji;
-            el.cn.textContent = `「${d.chinese}」`;
-            el.pg.textContent = `${currentIndex + 1} / ${lyricsData.length}`;
-            el.v.innerHTML = d.vocab.map(v => `<div class="text-sm border-l-2 border-sky-100 pl-2"><span class="font-bold text-sky-700">${v.word}</span> <span class="text-slate-500">${v.meaning}</span></div>`).join('');
-            el.dt.innerHTML = lyricsData.map((_, i) => `<div class="h-1.5 rounded-full transition-all ${i === currentIndex ? 'w-8 bg-sky-600' : 'w-2 bg-slate-300'}"></div>`).join('');
+            el.cn.textContent = d.chinese;
+            el.pg.textContent = `Page ${String(currentIndex + 1).padStart(2, '0')}`;
+            el.pb.style.width = `${((currentIndex + 1) / lyricsData.length) * 100}%`;
+            
+            el.v.innerHTML = d.vocab.map(v => `
+                <div class="flex-shrink-0 w-40 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                    <p class="font-bold text-sky-700 text-sm mb-1">${v.word}</p>
+                    <p class="text-[10px] text-slate-500 leading-tight">${v.meaning}</p>
+                </div>
+            `).join('');
+
             el.prev.disabled = currentIndex === 0;
             el.next.disabled = currentIndex === lyricsData.length - 1;
             lucide.createIcons();
-        }
-
-        function playTTS() {
-            const u = new SpeechSynthesisUtterance(lyricsData[currentIndex].japanese);
-            u.lang = 'ja-JP'; 
-            u.rate = parseFloat(el.speed.value);
-            window.speechSynthesis.cancel(); 
-            window.speechSynthesis.speak(u);
-        }
-
-        function playSong() {
-            if (!playerReady || !player) {
-                showToast("播放器目前受限，建議點擊右上角連結開啟 YouTube 音樂配合學習。");
-                return;
-            }
-            const startTime = lyricsData[currentIndex].start;
-            player.seekTo(startTime, true);
-            player.playVideo();
-        }
-
-        function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                if (syncInterval) clearInterval(syncInterval);
-                syncInterval = setInterval(checkSync, 500);
-            } else {
-                if (syncInterval) clearInterval(syncInterval);
-            }
-        }
-
-        function checkSync() {
-            if (!el.sync.checked || !player || !playerReady) return;
-            try {
-                const curr = player.getCurrentTime();
-                let newIdx = -1;
-                for (let i = 0; i < lyricsData.length; i++) {
-                    if (curr >= lyricsData[i].start) {
-                        newIdx = i;
-                    }
-                }
-                if (newIdx !== -1 && newIdx !== currentIndex) {
-                    updateContent(newIdx);
-                }
-            } catch (e) {
-                console.warn("Sync logic error", e);
-            }
         }
 
         function updateContent(newIdx) {
@@ -287,13 +289,68 @@
             el.cont.classList.add('fade-in');
         }
 
-        el.prev.addEventListener('click', () => updateContent(currentIndex - 1));
-        el.next.addEventListener('click', () => updateContent(currentIndex + 1));
-        el.tts.addEventListener('click', playTTS);
-        el.song.addEventListener('click', playSong);
-        el.speed.addEventListener('input', (e) => el.speedVal.textContent = `${e.target.value}x`);
+        // --- Interaction ---
+        el.btnOpen.onclick = () => el.modal.classList.remove('hidden');
+        el.btnClose.onclick = () => el.modal.classList.add('hidden');
+        el.modal.onclick = (e) => { if(e.target === el.modal) el.modal.classList.add('hidden'); };
+
+        uploadZone.onclick = () => audioInput.click();
+        audioInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                audioPlayer.src = URL.createObjectURL(file);
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                tx.objectStore(STORE_NAME).put({ blob: file, name: file.name }, "audio");
+                el.upDefault.classList.add('hidden');
+                el.fileName.textContent = file.name;
+                el.upDone.classList.remove('hidden');
+                el.upDone.classList.add('flex');
+                el.song.disabled = false;
+                showToast("音樂已成功儲存到本地");
+            }
+        };
+
+        el.offset.oninput = (e) => {
+            offset = parseFloat(e.target.value);
+            el.offsetVal.textContent = (offset >= 0 ? "+" : "") + offset.toFixed(1) + "s";
+            localStorage.setItem('nada-offset', offset);
+        };
+
+        el.speed.oninput = (e) => el.speedVal.textContent = `${e.target.value}x`;
+
+        el.tts.onclick = () => {
+            const u = new SpeechSynthesisUtterance(lyricsData[currentIndex].japanese);
+            u.lang = 'ja-JP'; u.rate = parseFloat(el.speed.value);
+            window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+        };
+
+        el.song.onclick = () => {
+            if (!audioPlayer.src) return;
+            audioPlayer.currentTime = Math.max(0, lyricsData[currentIndex].start + offset);
+            audioPlayer.play();
+        };
+
+        audioPlayer.ontimeupdate = () => {
+            if (!el.sync.checked) return;
+            const curr = audioPlayer.currentTime;
+            let n = -1;
+            for(let i=0; i<lyricsData.length; i++) if(curr >= lyricsData[i].start + offset) n = i;
+            if(n !== -1 && n !== currentIndex) updateContent(n);
+        };
+
+        el.prev.onclick = () => updateContent(currentIndex - 1);
+        el.next.onclick = () => updateContent(currentIndex + 1);
+        el.btnReset.onclick = () => {
+            if(confirm("確定要刪除所有儲存的資料嗎？")){
+                localStorage.clear();
+                const tx = db.transaction(STORE_NAME, "readwrite");
+                tx.objectStore(STORE_NAME).clear();
+                location.reload();
+            }
+        };
 
         render();
+        lucide.createIcons();
     </script>
 </body>
 </html>
