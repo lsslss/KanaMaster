@@ -198,9 +198,25 @@
             }
         };
 
+        //const Icon = ({ name, size = 24, className = "" }) => {
+        //    useEffect(() => { if (window.lucide) lucide.createIcons(); }, [name, className]);
+        //    return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        //};
         const Icon = ({ name, size = 24, className = "" }) => {
-            useEffect(() => { if (window.lucide) lucide.createIcons(); }, [name, className]);
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+            useEffect(() => {
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
+            }, [name, className]); // 當名稱改變時重新觸發
+
+            return (
+                <i 
+                    key={name} // 加入這一行：強制 React 在圖示更換時重新渲染標籤
+                    data-lucide={name} 
+                    style={{ width: size, height: size }} 
+                    className={className}
+                ></i>
+            );
         };
 
         function App() {
