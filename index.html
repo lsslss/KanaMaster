@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kana Master - 旅遊五十音全面修正版</title>
+    <title>Kana Master - Dual Mode SRS</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -27,11 +27,11 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
+        const { useState, useEffect, useCallback, useMemo } = React;
 
-        // --- 核心資料庫：旅遊情境單字 (校對完畢) ---
+        // --- 核心資料庫 (標準化行數名稱) ---
         const KANA_DATA = [
-            // --- 平假名 (Hira) ---
+            // 平假名
             { kana: 'あ', romaji: 'a', row: 'あ行', charType: 'hira', word: 'あさごはん', meaning: '早餐', emoji: '🍳', source: '安' },
             { kana: 'い', romaji: 'i', row: 'あ行', charType: 'hira', word: 'いりぐち', meaning: '入口', emoji: '🚪', source: '以' },
             { kana: 'う', romaji: 'u', row: 'あ行', charType: 'hira', word: 'うみ', meaning: '大海', emoji: '🌊', source: '宇' },
@@ -47,11 +47,11 @@
             { kana: 'す', romaji: 'su', row: 'さ行', charType: 'hira', word: 'すし', meaning: '壽司', emoji: '🍣', source: '寸' },
             { kana: 'せ', romaji: 'se', row: 'さ行', charType: 'hira', word: 'せんもんてん', meaning: '專賣店', emoji: '🏪', source: '世' },
             { kana: 'そ', romaji: 'so', row: 'さ行', charType: 'hira', word: 'そら', meaning: '天空', emoji: '☁️', source: '曽' },
-            { kana: 'た', romaji: 'ta', row: 'た行', charType: 'hira', word: 'たべもの', meaning: '食物', emoji: '🍜', source: '太' },
-            { kana: 'ち', romaji: 'chi', row: 'た行', charType: 'hira', word: 'ちず', meaning: '地圖', emoji: '🗺️', source: '知' },
-            { kana: 'つ', romaji: 'tsu', row: 'た行', charType: 'hira', word: 'つうしん', meaning: '通訊', emoji: '📶', source: '川' },
-            { kana: 'て', romaji: 'te', row: 'た行', charType: 'hira', word: 'てんぷら', meaning: '天婦羅', emoji: '🍤', source: '天' },
-            { kana: 'と', romaji: 'to', row: 'た行', charType: 'hira', word: 'とっきゅう', meaning: '特急', emoji: '🚆', source: '止' },
+            { kana: 'た', romaji: 'た行', charType: 'hira', word: 'たべもの', meaning: '食物', emoji: '🍜', source: '太' },
+            { kana: 'ち', romaji: 'ち行', charType: 'hira', word: 'ちず', meaning: '地圖', emoji: '🗺️', source: '知' },
+            { kana: 'つ', romaji: 'た行', charType: 'hira', word: 'つうしん', meaning: '通訊', emoji: '📶', source: '川' },
+            { kana: 'て', romaji: 'た行', charType: 'hira', word: 'てんぷら', meaning: '天婦羅', emoji: '🍤', source: '天' },
+            { kana: 'と', romaji: 'た行', charType: 'hira', word: 'とっきゅう', meaning: '特急', emoji: '🚆', source: '止' },
             { kana: 'な', romaji: 'な行', charType: 'hira', word: 'なまびーる', meaning: '生啤酒', emoji: '🍺', source: '奈' },
             { kana: 'に', romaji: 'な行', charType: 'hira', word: 'にほん', meaning: '日本', emoji: '🇯🇵', source: '仁' },
             { kana: 'ぬ', romaji: 'な行', charType: 'hira', word: 'ぬぐ', meaning: '脫鞋', emoji: '👟', source: '奴' },
@@ -79,10 +79,10 @@
             { kana: 'を', romaji: 'わ行', charType: 'hira', word: 'を', meaning: '助詞', emoji: '📝', source: '遠' },
             { kana: 'ん', romaji: 'n', row: '鼻音', charType: 'hira', word: 'ぱん', meaning: '麵包', emoji: '🍞', source: '无' },
 
-            // --- 片假名 (Kata) ---
+            // 片假名
             { kana: 'ア', romaji: 'a', row: 'ア行', charType: 'kata', word: 'アイス', meaning: '冰淇淋', emoji: '🍦', source: '阿' },
             { kana: 'イ', romaji: 'i', row: 'ア行', charType: 'kata', word: 'イベント', meaning: '活動', emoji: '🎟️', source: '伊' },
-            { kana: 'ウ', romaji: 'u', row: 'ア行', charType: 'kata', word: 'ウェイター', meaning: '服務員', emoji: '💁', source: '宇' },
+            { kana: 'ウ', romaji: 'u', row: 'ア行', charType: 'kata', word: '服務生', meaning: '服務生', emoji: '💁', source: '宇' },
             { kana: 'エ', romaji: 'e', row: 'ア行', charType: 'kata', word: 'エアコン', meaning: '空調', emoji: '❄️', source: '江' },
             { kana: 'オ', romaji: 'o', row: 'ア行', charType: 'kata', word: 'オーケー', meaning: '沒問題', emoji: '✅', source: '於' },
             { kana: 'カ', romaji: 'ka', row: 'カ行', charType: 'kata', word: 'カメラ', meaning: '相機', emoji: '📷', source: '加' },
@@ -94,7 +94,7 @@
             { kana: 'シ', romaji: 'shi', row: 'サ行', charType: 'kata', word: 'シャンプー', meaning: '洗髮精', emoji: '🧴', source: '之' },
             { kana: 'ス', romaji: 'su', row: 'サ行', charType: 'kata', word: 'スイッチ', meaning: '開關', emoji: '🔘', source: '須' },
             { kana: 'セ', romaji: 'se', row: 'サ行', charType: 'kata', word: 'セット', meaning: '套餐', emoji: '🍱', source: '世' },
-            { kana: 'ソ', romaji: 'so', row: 'サ行', charType: 'kata', word: 'ソフトクリーム', meaning: '霜淇淋', emoji: '🍦', source: '曽' },
+            { kana: 'ソ', romaji: 'so', row: 'サ行', charType: 'kata', word: '軟霜淇淋', meaning: '霜淇淋', emoji: '🍦', source: '曽' },
             { kana: 'タ', romaji: 'ta', row: 'タ行', charType: 'kata', word: 'タクシー', meaning: '計程車', emoji: '🚕', source: '多' },
             { kana: 'チ', romaji: 'chi', row: 'タ行', charType: 'kata', word: 'チケット', meaning: '門票', emoji: '🎟️', source: '千' },
             { kana: 'ツ', romaji: 'tsu', row: 'タ行', charType: 'kata', word: 'ツアー', meaning: '行程', emoji: '🚩', source: '川' },
@@ -114,17 +114,17 @@
             { kana: 'ミ', romaji: 'mi', row: 'マ行', charType: 'kata', word: 'ミルク', meaning: '牛奶', emoji: '🥛', source: '三' },
             { kana: 'ム', romaji: 'mu', row: 'マ行', charType: 'kata', word: 'ムービー', meaning: '電影', emoji: '🎬', source: '牟' },
             { kana: 'メ', romaji: 'me', row: 'マ行', charType: 'kata', word: 'メニュー', meaning: '菜單', emoji: '📋', source: '女' },
-            { kana: 'モ', romaji: 'mo', row: 'マ行', charType: 'kata', word: 'モノレール', meaning: '單軌', emoji: '🚝', source: '毛' },
+            { kana: 'モ', romaji: 'mo', row: 'マ行', charType: 'kata', word: 'モノレール', meaning: '單軌', emoji: '毛' },
             { kana: 'ヤ', romaji: 'ya', row: 'ヤ行', charType: 'kata', word: 'ヤキトリ', meaning: '烤雞串', emoji: '🍢', source: '也' },
-            { kana: 'ユ', romaji: 'yu', row: 'ヤ行', charType: 'kata', word: 'ユーザー', meaning: '用戶', emoji: '👤', source: '由' },
+            { kana: 'ユ', romaji: 'yu', row: 'ヤ行', charType: 'kata', word: '用戶', meaning: '用戶', emoji: '👤', source: '由' },
             { kana: 'ヨ', romaji: 'yo', row: 'ヤ行', charType: 'kata', word: 'ヨット', meaning: '遊艇', emoji: '⛵', source: '與' },
             { kana: 'ラ', romaji: 'ra', row: 'ラ行', charType: 'kata', word: 'ラーメン', meaning: '拉麵', emoji: '🍜', source: '良' },
             { kana: 'リ', romaji: 'ri', row: 'ラ行', charType: 'kata', word: 'リュック', meaning: '背包', emoji: '🎒', source: '利' },
             { kana: 'ル', romaji: 'ru', row: 'ラ行', charType: 'kata', word: 'ルーム', meaning: '房間', emoji: '🛌', source: '流' },
             { kana: 'レ', romaji: 're', row: 'ラ行', charType: 'kata', word: 'レシート', meaning: '收據', emoji: '🧾', source: '禮' },
             { kana: 'ロ', romaji: 'ro', row: 'ラ行', charType: 'kata', word: 'ロビー', meaning: '大廳', emoji: '🛋️', source: '呂' },
-            { kana: 'ワ', romaji: 'wa', row: 'ワ行', charType: 'kata', word: 'ワイファイ', meaning: 'Wi-Fi', emoji: '📶', source: '和' },
-            { kana: 'ヲ', romaji: 'wo', row: 'ワ行', charType: 'kata', word: 'ヲ', meaning: '助詞', emoji: '📝', source: '乎' },
+            { kana: 'ワ', romaji: 'wa', row: 'ワ行', charType: 'kata', word: '和行', meaning: 'Wi-Fi', emoji: '📶', source: '和' },
+            { kana: 'ヲ', romaji: 'wo', row: 'ワ行', charType: 'kata', word: '助詞', emoji: '📝', source: '乎' },
             { kana: 'ン', romaji: 'n', row: '鼻音', charType: 'kata', word: 'パン', meaning: '麵包', emoji: '🍞', source: '尓' }
         ];
 
@@ -136,8 +136,8 @@
             },
             'kata': {
                 '基本音': ['ア行', 'カ行', 'サ行', 'タ行', 'ナ行', 'ハ行', 'マ行', 'ヤ行', 'ラ行', 'ワ行', '鼻音'],
-                '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', 'バ行', 'パ行'],
-                '拗音': ['キャ行', 'シャ行', 'チャ行']
+                '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', '巴行', 'パ行'],
+                '拗音': ['キャ行', 'シャ行', '查行']
             }
         };
 
@@ -152,32 +152,56 @@
             const [currentIndex, setCurrentIndex] = useState(0);
             const [isFlipped, setIsFlipped] = useState(false);
 
-            const [selectedTypes, setSelectedTypes] = useState(() => JSON.parse(localStorage.getItem('k_types_v12') || '["hira"]'));
-            const [selectedRows, setSelectedRows] = useState(() => JSON.parse(localStorage.getItem('k_rows_v12') || '["あ行"]'));
-            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v12') || 'order');
-            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v12') ?? 'true'));
-            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v12') ?? 'false'));
-            const [weakList, setWeakList] = useState(() => JSON.parse(localStorage.getItem('k_weak_v12') || '[]'));
+            // --- 持久化狀態 ---
+            const [selectedTypes, setSelectedTypes] = useState(() => JSON.parse(localStorage.getItem('k_types_v13') || '["hira"]'));
+            const [selectedRows, setSelectedRows] = useState(() => JSON.parse(localStorage.getItem('k_rows_v13') || '["あ行"]'));
+            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v13') || 'order'); // 'order' 或 'anki'
+            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v13') ?? 'true'));
+            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v13') ?? 'false'));
+            const [srsData, setSrsData] = useState(() => JSON.parse(localStorage.getItem('k_srs_v13') || '{}'));
 
-            // 重要：定義目前的卡片，避免 ReferenceError
+            // 宣告目前卡片
             const currentCard = cards[currentIndex] || {};
-            const isWeak = currentCard.kana ? weakList.includes(currentCard.kana) : false;
+            const isWeak = currentCard.kana ? (srsData[currentCard.kana]?.step || 0) < 2 : false;
 
             useEffect(() => {
-                localStorage.setItem('k_types_v12', JSON.stringify(selectedTypes));
-                localStorage.setItem('k_rows_v12', JSON.stringify(selectedRows));
-                localStorage.setItem('k_source_v12', JSON.stringify(showSource));
-                localStorage.setItem('k_autospeak_v12', JSON.stringify(autoSpeak));
-                localStorage.setItem('k_weak_v12', JSON.stringify(weakList));
-                localStorage.setItem('k_mode_v12', practiceMode);
-            }, [selectedTypes, selectedRows, showSource, autoSpeak, weakList, practiceMode]);
+                localStorage.setItem('k_types_v13', JSON.stringify(selectedTypes));
+                localStorage.setItem('k_rows_v13', JSON.stringify(selectedRows));
+                localStorage.setItem('k_source_v13', JSON.stringify(showSource));
+                localStorage.setItem('k_autospeak_v13', JSON.stringify(autoSpeak));
+                localStorage.setItem('k_srs_v13', JSON.stringify(srsData));
+                localStorage.setItem('k_mode_v13', practiceMode);
+            }, [selectedTypes, selectedRows, showSource, autoSpeak, srsData, practiceMode]);
+
+            // 計算今日到期
+            const dueCount = useMemo(() => {
+                const now = Date.now();
+                return KANA_DATA.filter(item => {
+                    if (!selectedTypes.includes(item.charType) || !selectedRows.includes(item.row)) return false;
+                    const rec = srsData[item.kana];
+                    return rec && rec.nextReview <= now;
+                }).length;
+            }, [srsData, selectedTypes, selectedRows]);
 
             const generatePracticeSet = useCallback((targetMode = practiceMode) => {
-                let pool = targetMode === 'weak' ? KANA_DATA.filter(i => weakList.includes(i.kana)) : KANA_DATA.filter(i => selectedTypes.includes(i.charType) && selectedRows.includes(i.row));
-                if (targetMode === 'shuffle') pool = [...pool].sort(() => Math.random() - 0.5);
-                setCards(pool.length > 0 ? pool : [KANA_DATA[0]]);
+                const pool = KANA_DATA.filter(i => selectedTypes.includes(i.charType) && selectedRows.includes(i.row));
+                let practiceCards = [];
+
+                if (targetMode === 'anki') {
+                    const now = Date.now();
+                    // Anki 模式：優先到期，沒到期就新卡，最後才隨機
+                    practiceCards = pool.filter(i => {
+                        const rec = srsData[i.kana];
+                        return !rec || rec.nextReview <= now;
+                    }).sort(() => Math.random() - 0.5);
+                } else {
+                    // 循序模式：照資料庫順序
+                    practiceCards = pool;
+                }
+
+                setCards(practiceCards.length > 0 ? practiceCards : [KANA_DATA[0]]);
                 setCurrentIndex(0); setIsFlipped(false); setView('practice');
-            }, [selectedTypes, selectedRows, practiceMode, weakList]);
+            }, [selectedTypes, selectedRows, srsData, practiceMode]);
 
             useEffect(() => { generatePracticeSet(); }, []);
 
@@ -196,14 +220,39 @@
                 }
             }, [currentIndex, cards, view, autoSpeak, isFlipped, speak]);
 
-            const handleNext = () => {
+            // SRS 評分處理
+            const handleReview = (kana, quality) => {
+                setSrsData(prev => {
+                    const now = Date.now();
+                    const record = prev[kana] || { interval: 0, ease: 2.5, step: 0 };
+                    let { interval, ease, step } = record;
+
+                    if (quality === 1) { // Again
+                        interval = 0; step = 0; ease = Math.max(1.3, ease - 0.2);
+                    } else if (quality === 2) { // Hard
+                        interval = interval === 0 ? 0.5 : interval * 1.2; ease = Math.max(1.3, ease - 0.15);
+                    } else if (quality === 3) { // Good
+                        interval = interval === 0 ? 1 : interval * ease; step++;
+                    } else { // Easy
+                        interval = interval === 0 ? 4 : interval * ease * 1.3; ease += 0.15;
+                    }
+
+                    const nextReview = now + (interval * 24 * 60 * 60 * 1000);
+                    return { ...prev, [kana]: { interval, ease, step, nextReview } };
+                });
+
+                // 自動下一題
                 setIsFlipped(false);
                 setTimeout(() => {
-                    if (currentIndex === cards.length - 1) {
-                        if (practiceMode === 'shuffle') generatePracticeSet('shuffle');
-                        else setCurrentIndex(0);
-                    } else setCurrentIndex(prev => prev + 1);
-                }, 50);
+                    if (currentIndex === cards.length - 1) generatePracticeSet();
+                    else setCurrentIndex(prev => prev + 1);
+                }, 100);
+            };
+
+            const toggleMode = () => {
+                const nextMode = practiceMode === 'order' ? 'anki' : 'order';
+                setPracticeMode(nextMode);
+                generatePracticeSet(nextMode);
             };
 
             return (
@@ -211,26 +260,29 @@
                     <header className="bg-white border-b px-4 py-2 sticky top-0 z-30 flex justify-between items-center shadow-sm h-14 shrink-0">
                         <div className="flex flex-col">
                             <h1 className="text-lg font-bold text-indigo-600 leading-none">Kana Master</h1>
-                            <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-0.5">Dual-Mode Ver.</span>
+                            <span className="text-[9px] text-slate-400 font-black tracking-widest uppercase mt-0.5">
+                                {practiceMode === 'anki' ? `SRS Active: ${dueCount} Due` : 'Order Mode: Learning'}
+                            </span>
                         </div>
                         
                         <div className="flex items-center gap-1">
-                            {/* 修正圖示邏輯：ON 時紫色背景配 volume-2，OFF 時灰色背景配 volume-x */}
+                            <button 
+                                onClick={toggleMode}
+                                className={`p-2 rounded-xl transition-all active:scale-90 ${practiceMode === 'anki' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900 text-white'}`}
+                                title="模式切換"
+                            >
+                                <Icon name={practiceMode === 'anki' ? "brain" : "list-ordered"} size={20} />
+                            </button>
+
                             <button 
                                 onClick={() => setAutoSpeak(!autoSpeak)}
                                 className={`p-2 rounded-xl transition-all active:scale-90 ${autoSpeak ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}
                             >
-                                <Icon name={autoSpeak ? "volume-2" : "volume-x"} size={22} />
+                                <Icon name={autoSpeak ? "volume-2" : "volume-x"} size={20} />
                             </button>
-
-                            {weakList.length > 0 && view !== 'settings' && (
-                                <button onClick={() => generatePracticeSet('weak')} className="p-2 text-amber-500 active:scale-90 transition-transform">
-                                    <div className="relative"><Icon name="zap" size={20} /><span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] w-3 h-3 rounded-full flex items-center justify-center font-bold">{weakList.length}</span></div>
-                                </button>
-                            )}
                             
                             <button onClick={() => setView('settings')} className={`p-2 rounded-xl transition-colors ${view === 'settings' ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400'}`}>
-                                <Icon name="settings" size={22} />
+                                <Icon name="settings" size={20} />
                             </button>
                         </div>
                     </header>
@@ -240,23 +292,23 @@
                             <div className="space-y-4 animate-in fade-in duration-500 h-full flex flex-col">
                                 <div className="shrink-0">
                                     <div className="flex justify-between items-end mb-1 px-1">
-                                        <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest text-center">Progress</div>
+                                        <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Progress</div>
                                         <div className="text-[10px] font-black text-slate-400">{currentIndex + 1} / {cards.length}</div>
                                     </div>
-                                    <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden shadow-inner">
+                                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden shadow-inner">
                                         <div className="bg-indigo-500 h-full transition-all duration-300" style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}></div>
                                     </div>
                                 </div>
 
                                 <div 
-                                    className={`relative h-[480px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}
+                                    className={`relative h-[420px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}
                                 >
+                                    {/* 正面 */}
                                     <div className={`absolute inset-0 bg-white rounded-[2.5rem] shadow-lg flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                         <div className="h-1/3 flex items-center justify-center bg-indigo-50/30 relative">
                                             <span className="text-8xl animate-bounce-slow drop-shadow-sm">{currentCard.emoji}</span>
                                             {showSource && <div className="absolute top-3 right-4 bg-white/90 backdrop-blur px-2.5 py-0.5 rounded-full shadow-sm border border-indigo-100 flex items-center gap-1"><span className="text-[10px] font-bold text-indigo-400 tracking-tighter">源自</span><span className="text-lg font-black text-indigo-600">{currentCard.source}</span></div>}
-                                            {isWeak && <div className="absolute top-3 left-4 text-amber-500 animate-pulse"><Icon name="zap" size={20} /></div>}
-                                            <div className="absolute bottom-2 left-4 bg-slate-800 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest opacity-50">{currentCard.charType === 'hira' ? 'Hiragana' : 'Katakana'}</div>
+                                            <div className="absolute bottom-2 left-4 bg-slate-800 text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest opacity-50">{currentCard.charType}</div>
                                         </div>
                                         <div className="flex-1 flex flex-col items-center justify-center p-4">
                                             <span className={`${currentCard.kana?.length > 1 ? 'text-7xl' : 'text-8xl'} font-black text-slate-800 leading-none`}>{currentCard.kana}</span>
@@ -265,25 +317,43 @@
                                                 <p className="text-slate-400 text-[11px] font-medium tracking-wide">{currentCard.meaning}</p>
                                             </div>
                                         </div>
-                                        <div className="h-12 flex items-center justify-center text-slate-300 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-slate-50">點擊看讀音</div>
+                                        <div className="h-10 flex items-center justify-center text-slate-300 text-[8px] font-bold uppercase tracking-[0.2em] border-t border-slate-50">點擊查看答案</div>
                                     </div>
+                                    {/* 背面 */}
                                     <div className={`absolute inset-0 bg-white rounded-[2.5rem] shadow-lg flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
                                         <div className="h-1/4 flex items-center justify-center bg-slate-50/50 relative">
                                             <span className="text-7xl opacity-30 grayscale">{currentCard.emoji}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); setWeakList(p => p.includes(currentCard.kana) ? p.filter(k => k !== currentCard.kana) : [...p, currentCard.kana]); }} className={`absolute top-4 right-4 p-3 rounded-2xl border transition-all ${isWeak ? 'bg-amber-500 border-amber-500 text-white shadow-lg' : 'bg-white border-slate-200 text-slate-400'}`}><Icon name="zap" size={20} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="absolute top-4 right-4 bg-indigo-600 text-white p-3 rounded-full shadow-lg active:scale-90 transition-transform"><Icon name="volume-2" size={24} /></button>
                                         </div>
                                         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                                             <div className="mb-4"><div className="flex items-baseline justify-center gap-3"><span className="text-7xl font-black text-indigo-600 uppercase tracking-tighter drop-shadow-sm">{currentCard.romaji}</span><span className="text-3xl font-bold text-slate-300">({currentCard.kana})</span></div></div>
                                             <div className="flex flex-col items-center gap-2 mb-4"><div className="px-5 py-1.5 bg-indigo-600 rounded-xl shadow-md"><span className="text-white font-black text-xl">{currentCard.word}</span></div><span className="text-slate-500 font-black text-sm uppercase tracking-tight">[{currentCard.meaning}]</span></div>
-                                            <div className="flex items-center gap-6 mt-2"><div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-lg"><span className="text-[10px] font-bold text-slate-400 uppercase">Origin</span><span className="text-lg font-black text-slate-600">{currentCard.source}</span></div><button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="bg-indigo-600 text-white p-4 rounded-full shadow-lg active:scale-90 transition-transform"><Icon name="volume-2" size={28} /></button></div>
+                                            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 mt-2">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Level</span>
+                                                <span className="text-base font-black text-indigo-500">{srsData[currentCard.kana]?.step || 0}</span>
+                                            </div>
                                         </div>
-                                        <div className="h-12 flex items-center justify-center text-indigo-200 text-[9px] font-bold uppercase tracking-[0.2em] border-t border-indigo-50">點擊回到正面</div>
+                                        <div className="h-10 flex items-center justify-center text-indigo-200 text-[8px] font-bold uppercase tracking-[0.2em] border-t border-indigo-50">點擊回到假名</div>
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 px-1 mt-auto pb-4 shrink-0">
-                                    <button onClick={handleNext} className="flex-[3] bg-white border border-slate-200 py-4 rounded-2xl font-black text-slate-600 active:bg-slate-100 shadow-sm text-sm">NEXT KANA</button>
-                                    <button onClick={() => { const nm = practiceMode === 'order' ? 'shuffle' : 'order'; setPracticeMode(nm); generatePracticeSet(nm); }} className={`flex-[2] py-4 rounded-2xl font-black text-white shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-0.5 ${practiceMode === 'order' ? 'bg-slate-900' : 'bg-indigo-600'}`}><div className="flex items-center gap-1.5"><Icon name={practiceMode === 'order' ? "list-ordered" : "shuffle"} size={16} /><span className="text-[10px] uppercase tracking-tighter">{practiceMode === 'order' ? 'Order' : 'Shuffle'}</span></div><span className="text-[9px] opacity-60 font-medium tracking-tight">SWITCH MODE</span></button>
+                                {/* 操作按鈕區：正面背面都會顯示，方便快速評分 */}
+                                <div className="grid grid-cols-4 gap-2 pt-2 shrink-0">
+                                    {[
+                                        { q: 1, l: '重來', c: 'bg-red-50 text-red-600 border-red-100', sub: '<1m' },
+                                        { q: 2, l: '困難', c: 'bg-orange-50 text-orange-600 border-orange-100', sub: '1d' },
+                                        { q: 3, l: '良好', c: 'bg-green-50 text-green-600 border-green-100', sub: '3d' },
+                                        { q: 4, l: '簡單', c: 'bg-blue-50 text-blue-600 border-blue-100', sub: '7d' }
+                                    ].map(btn => (
+                                        <button 
+                                            key={btn.q} 
+                                            onClick={(e) => { e.stopPropagation(); handleReview(currentCard.kana, btn.q); }}
+                                            className={`${btn.c} border-2 py-3 rounded-2xl flex flex-col items-center justify-center transition-all active:scale-95 shadow-sm`}
+                                        >
+                                            <span className="font-black text-sm">{btn.l}</span>
+                                            <span className="text-[8px] font-bold opacity-60 uppercase">{btn.sub}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -292,7 +362,12 @@
                             <div className="space-y-6 animate-in slide-in-from-bottom-4 pb-32">
                                 <section className="space-y-3">
                                     <h2 className="text-base font-black flex items-center gap-2 text-slate-700"><div className="w-1 h-5 bg-indigo-500 rounded-full"></div>偏好設定</h2>
-                                    <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm cursor-pointer active:bg-slate-50"><div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示起源漢字</span><span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Show Etymology</span></div><input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm cursor-pointer active:bg-slate-50">
+                                            <div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示起源漢字</span><span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Show Etymology</span></div>
+                                            <input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" />
+                                        </label>
+                                    </div>
                                 </section>
 
                                 <section className="space-y-3">
@@ -315,14 +390,13 @@
                                                         <span className="text-[10px] font-bold text-slate-400 ml-1">{subLabel}</span>
                                                         <div className="grid grid-cols-4 gap-2">
                                                             {rows.map(row => (
-                                                                <button key={row} onClick={() => setSelectedRows(prev => prev.includes(row) ? prev.filter(r => r !== row) : [...prev, row])} className={`py-2.5 rounded-xl text-[10px] font-black transition-all border ${selectedRows.includes(row) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]' : 'bg-white border-slate-100 text-slate-400 active:border-indigo-200'}`}>{row.replace('行', '')}</button>
+                                                                <button key={row} onClick={() => setSelectedRows(prev => prev.includes(row) ? prev.filter(r => r !== row) : [...prev, row])} className={`py-2.5 rounded-xl text-[10px] font-black transition-all border ${selectedRows.includes(row) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]' : 'bg-white border-slate-100 text-slate-400'}`}>{row.replace('行', '')}</button>
                                                             ))}
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         ))}
-                                        {selectedTypes.length === 0 && <p className="text-xs text-slate-400 italic text-center py-4">請先勾選上方的文字種類</p>}
                                     </div>
                                 </section>
                             </div>
@@ -336,7 +410,7 @@
                                     if (view === 'settings') generatePracticeSet();
                                     else setView('practice');
                                 }} 
-                                className="pointer-events-auto bg-white/95 backdrop-blur text-indigo-600 px-10 py-4 rounded-full font-black shadow-2xl border border-indigo-50 flex items-center gap-3 active:scale-95 transition-transform shadow-indigo-100/50"
+                                className="pointer-events-auto bg-white/95 backdrop-blur text-indigo-600 px-10 py-4 rounded-full font-black shadow-2xl border border-indigo-50 flex items-center gap-3 active:scale-95 transition-transform"
                             >
                                 <Icon name={view === 'settings' ? "check-circle" : "arrow-left"} size={18} /> 
                                 {view === 'settings' ? "套用設定並開始" : "返回練習頁"}
