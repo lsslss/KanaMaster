@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#4f46e5">
     <title>Kana Master - Universal Learning Engine v2.3</title>
     
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzRmNDZlNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjAiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7jgYI8L3RleHQ+Cjwvc3ZnPg==">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzRmNDZlNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtsizePSI2MCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPuOBggo8L3RleHQ+Cjwvc3ZnPg==">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -26,28 +26,18 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .transition-theme { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
         
-        /* --- Ruby 漢字讀音對齊終極修正 (Flexbox 物理對齊法) --- */
-        .ruby-container {
-            display: inline-flex;
-            flex-direction: column-reverse;
-            align-items: center;
-            vertical-align: bottom;
-            margin: 0 1px;
-            line-height: 1;
+        /* --- Ruby 標準排版排版優化 --- */
+        ruby {
+            ruby-align: center;
+            ruby-position: over;
         }
-        .ruby-top {
-            display: block;
-            font-size: 0.42em;
+        ruby rt {
+            font-size: 0.45em;
             color: #4f46e5;
             font-weight: 800;
-            text-align: center;
-            width: 100%;
-            padding-bottom: 2px;
-            min-height: 1em;
-        }
-        .ruby-bottom {
-            display: block;
             line-height: 1.1;
+            padding-bottom: 0.15em;
+            text-align: center;
         }
         .card-shadow { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
     </style>
@@ -58,15 +48,16 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 1. 預設資料 (v2.3 規格：新增 secondaryReading) ---
+        // --- 1. 預設資料 (v2.3 規格) ---
         const DEFAULT_KANA_DATA = [
             { unit: "あ行", category: "kana", primary: "あ", reading: "あ", meaning: "平假名 a", secondary: "空[あ]き", secondaryReading: "あき", emoji: "🈳" },
             { unit: "あ行", category: "kana", primary: "い", reading: "い", meaning: "平假名 i", secondary: "入口[いりぐち]", secondaryReading: "いりぐち", emoji: "🚪" }
         ];
 
-        // --- Ruby 解析組件：手動構建對齊結構 ---
+        // --- Ruby 解析組件：回歸標準 ruby / rt 標籤 ---
         const RubyText = ({ text, className = "" }) => {
             if (!text) return null;
+            // 分割標記與純文字
             const parts = text.split(/([^[\]\s、。！？]+\[[^\]]+\])/g);
             return (
                 <span className={className}>
@@ -74,10 +65,9 @@
                         const match = part.match(/^([^\[]+)\[([^\]]+)\]$/);
                         if (match) {
                             return (
-                                <span key={i} className="ruby-container">
-                                    <span className="ruby-bottom">{match[1]}</span>
-                                    <span className="ruby-top">{match[2]}</span>
-                                </span>
+                                <ruby key={i}>
+                                    {match[1]}<rt>{match[2]}</rt>
+                                </ruby>
                             );
                         }
                         return <span key={i}>{part}</span>;
@@ -96,7 +86,7 @@
         };
 
         function App() {
-            // --- 1. 狀態宣告 ---
+            // --- 狀態宣告 ---
             const [view, setView] = useState('practice');
             const [cards, setCards] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
@@ -105,23 +95,21 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const [syncMessage, setSyncMessage] = useState('');
             
-            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_units_v67') || '[]'));
-            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v67') || 'order'); 
-            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v67') ?? 'false'));
-            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v67') ?? "0.9"));
-            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v67') ?? 'true'));
-            const [srsData, setSrsData] = useState(() => JSON.parse(localStorage.getItem('k_srs_v67') || '{}'));
-            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_url_v67') || '');
-            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_cloud_courses_v67') || '{}'));
-            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_active_id_v67') || 'builtin_50');
+            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_units_v68') || '[]'));
+            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v68') || 'order'); 
+            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v68') ?? 'false'));
+            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v68') ?? "0.9"));
+            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v68') ?? 'true'));
+            const [srsData, setSrsData] = useState(() => JSON.parse(localStorage.getItem('k_srs_v68') || '{}'));
+            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_url_v68') || '');
+            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_cloud_courses_v68') || '{}'));
+            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_active_id_v68') || 'builtin_50');
 
-            // --- 2. 資料預處理 (標準化與校正) ---
+            // --- 資料標準化與預處理 ---
             const currentLessonItems = useMemo(() => {
                 const rawItems = activeCourseId === 'builtin_50' ? DEFAULT_KANA_DATA : (cloudCourses[activeCourseId] || []);
-                
                 return rawItems.map(item => {
                     const normalized = { ...item };
-                    // 欄位標準化
                     Object.keys(item).forEach(key => {
                         const lowKey = key.toLowerCase().trim();
                         if (lowKey === 'unit') normalized.unit = item[key];
@@ -130,9 +118,6 @@
                         if (lowKey === 'primary') normalized.primary = item[key];
                         if (lowKey === 'reading') normalized.reading = item[key];
                         if (lowKey === 'meaning') normalized.meaning = item[key];
-                        if (lowKey === 'emoji') normalized.emoji = item[key];
-                        if (lowKey === 'notes') normalized.notes = item[key];
-                        if (lowKey === 'category') normalized.category = item[key];
                     });
                     return normalized;
                 });
@@ -142,11 +127,11 @@
                 return [...new Set(currentLessonItems.map(i => i.unit))].filter(Boolean);
             }, [currentLessonItems]);
 
-            const activeCourseTitle = activeCourseId === 'builtin_50' ? '基礎五十音' : activeCourseId;
-            const currentCard = cards[currentIndex] || {};
-            const cardId = (currentCard.primary || '') + (currentCard.reading || '');
+            const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
+            const cardId = useMemo(() => (currentCard.primary || '') + (currentCard.reading || ''), [currentCard]);
             const srsInfo = srsData[cardId] || { step: 0, interval: 0 };
             const isWeak = srsInfo.step < 2 && srsInfo.step > 0;
+            const activeCourseTitle = activeCourseId === 'builtin_50' ? '基礎五十音' : activeCourseId;
 
             const dueCount = useMemo(() => {
                 const now = Date.now();
@@ -174,7 +159,7 @@
                 return { bg: 'from-blue-50 to-indigo-100', primary: 'indigo' };
             }, [view, practiceMode]);
 
-            // --- 3. 語音功能 (核心修正：直接使用 secondaryReading) ---
+            // --- 功能函數 ---
             const speak = useCallback((card) => {
                 if (!window.speechSynthesis || !card || !card.reading) return;
                 window.speechSynthesis.cancel();
@@ -183,13 +168,12 @@
                 mainUtterance.lang = 'ja-JP';
                 mainUtterance.rate = parseFloat(speechRate);
 
-                // 鏈式播放 secondaryReading (來自試算表，不再清洗)
                 if (card.secondaryReading) {
                     mainUtterance.onend = () => {
                         const secUtterance = new SpeechSynthesisUtterance(card.secondaryReading);
                         secUtterance.lang = 'ja-JP';
                         secUtterance.rate = parseFloat(speechRate);
-                        setTimeout(() => window.speechSynthesis.speak(secUtterance), 300);
+                        setTimeout(() => window.speechSynthesis.speak(secUtterance), 350);
                     };
                 }
                 window.speechSynthesis.speak(mainUtterance);
@@ -214,31 +198,31 @@
                 }
                 
                 setCards(practiceCards.length > 0 ? practiceCards : (currentLessonItems.length > 0 ? [currentLessonItems[0]] : []));
-                setCurrentIndex(0); setIsFlipped(false); setView('practice');
+                setCurrentIndex(0); 
+                setIsFlipped(false); 
+                setView('practice');
             }, [selectedUnits, srsData, practiceMode, currentLessonItems]);
 
-            // --- 4. 副作用 ---
+            // --- 副作用 ---
             useEffect(() => {
-                localStorage.setItem('k_units_v67', JSON.stringify(selectedUnits));
-                localStorage.setItem('k_mode_v67', practiceMode);
-                localStorage.setItem('k_autospeak_v67', JSON.stringify(autoSpeak));
-                localStorage.setItem('k_speechrate_v67', JSON.stringify(speechRate));
-                localStorage.setItem('k_source_v67', JSON.stringify(showSource));
-                localStorage.setItem('k_srs_v67', JSON.stringify(srsData));
-                localStorage.setItem('k_gas_url_v67', gasUrl);
-                localStorage.setItem('k_cloud_courses_v67', JSON.stringify(cloudCourses));
-                localStorage.setItem('k_active_id_v67', activeCourseId);
+                localStorage.setItem('k_units_v68', JSON.stringify(selectedUnits));
+                localStorage.setItem('k_mode_v68', practiceMode);
+                localStorage.setItem('k_autospeak_v68', JSON.stringify(autoSpeak));
+                localStorage.setItem('k_speechrate_v68', JSON.stringify(speechRate));
+                localStorage.setItem('k_source_v68', JSON.stringify(showSource));
+                localStorage.setItem('k_srs_v68', JSON.stringify(srsData));
+                localStorage.setItem('k_gas_url_v68', gasUrl);
+                localStorage.setItem('k_cloud_courses_v68', JSON.stringify(cloudCourses));
+                localStorage.setItem('k_active_id_v68', activeCourseId);
             }, [selectedUnits, practiceMode, autoSpeak, speechRate, showSource, srsData, gasUrl, cloudCourses, activeCourseId]);
 
-            // 自動補全選取單元
             useEffect(() => {
                 if (availableUnits.length > 0) {
-                    const valid = selectedUnits.filter(u => availableUnits.includes(u));
-                    if (valid.length === 0) setSelectedUnits([availableUnits[0]]);
+                    const stillValid = selectedUnits.filter(u => availableUnits.includes(u));
+                    if (stillValid.length === 0) setSelectedUnits([availableUnits[0]]);
                 }
             }, [activeCourseId, cloudCourses, availableUnits]);
 
-            // 字卡池同步
             useEffect(() => {
                 const pool = currentLessonItems.filter(i => selectedUnits.includes(i.unit));
                 if (pool.length > 0) {
@@ -248,7 +232,6 @@
                 }
             }, [selectedUnits, currentLessonItems]);
 
-            // 自動跟讀
             useEffect(() => {
                 if (autoSpeak && cards.length > 0 && view === 'practice' && !isFlipped && currentCard.reading) {
                     const timer = setTimeout(() => speak(currentCard), 800);
@@ -328,7 +311,6 @@
                                             <div className="w-full bg-white/50 h-1.5 rounded-full overflow-hidden shadow-inner"><div className={`bg-${theme.primary}-500 h-full transition-all duration-300`} style={{ width: `${((currentIndex + 1) / Math.max(1, cards.length)) * 100}%` }}></div></div>
                                         </div>
                                         <div className={`relative h-[460px] w-full perspective-1000 cursor-pointer transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                            {/* 正面 */}
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-white ${isFlipped ? 'hidden' : 'flex'}`}>
                                                 <div className="h-1/4 flex items-center justify-center bg-indigo-50/20 relative shrink-0">
                                                     <span className="text-8xl animate-bounce-slow drop-shadow-sm">{currentCard.emoji}</span>
@@ -344,7 +326,6 @@
                                                     )}
                                                 </div>
                                             </div>
-                                            {/* 背面 */}
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-white transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
                                                 <div className="h-20 flex items-center justify-between px-8 bg-slate-50 border-b border-slate-100 shrink-0">
                                                     <div className="flex items-center gap-3">
@@ -369,7 +350,6 @@
                                                                 <p className="text-xs text-slate-500 font-medium">{currentCard.notes}</p>
                                                             </div>
                                                         )}
-                                                        {/* 調試區塊 */}
                                                         <div className="bg-rose-50 p-2 rounded-xl border border-rose-100 mt-2 opacity-60">
                                                             <p className="text-[8px] font-black text-rose-400 leading-tight">DEBUG VOICE (reading2):</p>
                                                             <p className="text-xs font-mono text-rose-600 break-words">{currentCard.secondaryReading || "(empty)"}</p>
@@ -408,7 +388,6 @@
                                         <button onClick={syncFromCloud} disabled={isSyncing || !gasUrl} className={`w-full py-4 rounded-xl text-xs font-black flex items-center justify-center gap-3 transition-all ${isSyncing ? 'bg-slate-100 text-slate-400' : 'bg-indigo-600 text-white shadow-md active:scale-95'}`}>
                                             <Icon name={isSyncing ? "loader" : "refresh-cw"} size={16} className={isSyncing ? "animate-spin" : ""} />立刻同步雲端教材
                                         </button>
-                                        {syncMessage && <p className="text-[10px] font-bold text-indigo-500 text-center">{syncMessage}</p>}
                                         <div className="space-y-1">
                                             <span className="text-[10px] font-black text-slate-400 ml-1">選擇目前分頁課程</span>
                                             <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none outline-none">
@@ -418,7 +397,6 @@
                                         </div>
                                     </div>
                                 </section>
-
                                 <section className="space-y-3">
                                     <h2 className="text-base font-black flex items-center gap-2 text-slate-700">練習範圍設定</h2>
                                     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-lg space-y-4">
@@ -430,7 +408,6 @@
                                         </div>
                                     </div>
                                 </section>
-
                                 <section className="space-y-3">
                                     <h2 className="text-base font-black flex items-center gap-2 text-slate-700">系統與數據</h2>
                                     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-lg space-y-5">
@@ -440,8 +417,8 @@
                                         </div>
                                         <label className="flex items-center justify-between cursor-pointer"><div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示註解與起源</span><span className="text-[9px] text-slate-400 font-bold uppercase">輔助記憶資訊</span></div><input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
                                         <div className="grid grid-cols-2 gap-2 pt-2">
-                                            <button onClick={() => { const blob = new Blob([JSON.stringify(srsData)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='progress.json'; a.click(); }} className="flex items-center justify-center gap-2 py-3 bg-slate-50 rounded-xl text-[10px] font-black border border-slate-100 shadow-sm hover:bg-slate-100 transition-colors"><Icon name="download" size={12} /> 備份進度</button>
-                                            <button onClick={() => { if(confirm('確定要重置數據嗎？')) { setSrsData({}); alert('已清除'); } }} className="flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black border border-rose-100 shadow-sm"><Icon name="rotate-ccw" size={12} /> 重置數據</button>
+                                            <button onClick={() => { const blob = new Blob([JSON.stringify(srsData)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='progress.json'; a.click(); }} className="flex items-center justify-center gap-2 py-3 bg-slate-50 rounded-xl text-[10px] font-black border border-slate-100 shadow-sm transition-colors"><Icon name="download" size={12} /> 備份進度</button>
+                                            <button onClick={() => { if(confirm('確定要重置數據嗎？')) { setSrsData({}); alert('已清除'); } }} className="flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black border border-rose-100 shadow-sm transition-colors"><Icon name="rotate-ccw" size={12} /> 重置數據</button>
                                         </div>
                                     </div>
                                 </section>
@@ -450,7 +427,7 @@
                     </main>
 
                     {view !== 'practice' && (
-                        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-4 z-30 pointer-events-none transition-theme"><button onClick={() => { if (view === 'settings') generatePracticeSet(); else setView('practice'); }} className={`pointer-events-auto bg-slate-900 text-white px-10 py-4 rounded-full font-black shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-in slide-in-from-bottom-6`}><Icon name={view === 'settings' ? "check-circle" : "arrow-left"} size={18} /> <span className="text-sm font-black uppercase tracking-widest">{view === 'settings' ? "套用並開始練習" : "返回"}</span></button></div>
+                        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-4 z-30 pointer-events-none transition-theme"><button onClick={() => { if (view === 'settings') generatePracticeSet(); else setView('practice'); }} className={`pointer-events-auto bg-slate-900 text-white px-10 py-4 rounded-full font-black shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-in slide-in-from-bottom-6`}><Icon name={view === 'settings' ? "check-circle" : "arrow-left"} size={18} /> <span className="text-sm font-black uppercase tracking-widest">{view === 'settings' ? "套用設定並開始" : "返回"}</span></button></div>
                     )}
                 </div>
             );
