@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master - Universal Learning Engine</title>
+    <title>Kana Master - Universal Learning Engine v2.3</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzRmNDZlNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjAiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7jgYI8L3RleHQ+Cjwvc3ZnPg==">
 
@@ -25,8 +25,31 @@
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .transition-theme { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        ruby rt { font-size: 0.45em; color: #6366f1; font-weight: bold; padding-bottom: 0.1em; }
-        .card-shadow { box-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.15); }
+        
+        /* --- Ruby 漢字讀音對齊終極修正 (Flexbox 物理對齊法) --- */
+        .ruby-container {
+            display: inline-flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            vertical-align: bottom;
+            margin: 0 1px;
+            line-height: 1;
+        }
+        .ruby-top {
+            display: block;
+            font-size: 0.42em;
+            color: #4f46e5;
+            font-weight: 800;
+            text-align: center;
+            width: 100%;
+            padding-bottom: 2px;
+            min-height: 1em;
+        }
+        .ruby-bottom {
+            display: block;
+            line-height: 1.1;
+        }
+        .card-shadow { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); }
     </style>
 </head>
 <body class="bg-slate-50 select-none overflow-x-hidden text-slate-800 font-sans transition-theme">
@@ -35,43 +58,29 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 1. 預設資料 (v2.0 規格) ---
+        // --- 1. 預設資料 (v2.3 規格：新增 secondaryReading) ---
         const DEFAULT_KANA_DATA = [
-            { unit: 'あ行', category: 'kana', primary: 'あ', reading: 'あ', meaning: '平假名 a', secondary: '空[あ]き', notes: '字源：安', emoji: '🈳' },
-            { unit: 'あ行', category: 'kana', primary: 'い', reading: 'い', meaning: '平假名 i', secondary: '入口[いりぐち]', notes: '字源：以', emoji: '🚪' },
-            { unit: 'あ行', category: 'kana', primary: 'う', reading: 'う', meaning: '平假名 u', secondary: '受付[うけつけ]', notes: '字源：宇', emoji: '💁' },
-            { unit: 'あ行', category: 'kana', primary: 'え', reading: 'え', meaning: '平假名 e', secondary: '駅[えき]', notes: '字源：衣', emoji: '🚉' },
-            { unit: 'あ行', category: 'kana', primary: 'お', reading: 'お', meaning: '平假名 o', secondary: '土産[みやげ]', notes: '字源：於', emoji: '🎁' },
-            { unit: 'か行', category: 'kana', primary: 'か', reading: 'か', meaning: '平假名 ka', secondary: '観光[かんこう]', notes: '字源：加', emoji: '🏯' },
-            { unit: 'か行', category: 'kana', primary: 'き', reading: 'き', meaning: '平假名 ki', secondary: '切符[きっぷ]', notes: '字源：幾', emoji: '🎫' },
-            { unit: 'か行', category: 'kana', primary: 'く', reading: 'く', meaning: '平假名 ku', secondary: '空港[くうこう]', notes: '字源：久', emoji: '✈️' },
-            { unit: 'か行', category: 'kana', primary: 'け', reading: 'け', meaning: '平假名 ke', secondary: '携帯[けいたい]', notes: '字源：計', emoji: '📱' },
-            { unit: 'か行', category: 'kana', primary: 'こ', reading: 'こ', meaning: '平假名 ko', secondary: '交番[こうばん]', notes: '字源：己', emoji: '🚔' }
+            { unit: "あ行", category: "kana", primary: "あ", reading: "あ", meaning: "平假名 a", secondary: "空[あ]き", secondaryReading: "あき", emoji: "🈳" },
+            { unit: "あ行", category: "kana", primary: "い", reading: "い", meaning: "平假名 i", secondary: "入口[いりぐち]", secondaryReading: "いりぐち", emoji: "🚪" }
         ];
 
-        const BUILTIN_GROUPS = {
-            'hira': {
-                '基本音': ['あ行', 'か行', 'さ行', 'た行', 'な行', 'は行', 'ま行', 'や行', 'ら行', 'わ行', '鼻音'],
-                '濁音/半濁音': ['が行', 'ざ行', 'だ行', 'ば行', 'ぱ行'],
-                '拗音': ['きゃ行', 'しゃ行', 'ちゃ行', 'にゃ行', 'ひゃ行', 'みゃ行', 'りゃ行', 'ぎゃ行', 'じゃ行', 'びゃ行', 'ぴゃ行']
-            },
-            'kata': {
-                '基本音': ['ア行', 'カ行', 'サ行', 'タ行', 'ナ行', 'ハ行', 'マ行', 'ヤ行', 'ラ行', 'ワ行', '鼻音'],
-                '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', 'バ行', 'パ行'],
-                '拗音': ['キャ行', 'シャ行', 'チャ行']
-            }
-        };
-
-        // --- Ruby 解析組件 ---
+        // --- Ruby 解析組件：手動構建對齊結構 ---
         const RubyText = ({ text, className = "" }) => {
             if (!text) return null;
-            const parts = text.split(/([^\s\[\]]+\[[^\]]+\])/g);
+            const parts = text.split(/([^[\]\s、。！？]+\[[^\]]+\])/g);
             return (
                 <span className={className}>
                     {parts.map((part, i) => {
                         const match = part.match(/^([^\[]+)\[([^\]]+)\]$/);
-                        if (match) return <ruby key={i}>{match[1]}<rt>{match[2]}</rt></ruby>;
-                        return part;
+                        if (match) {
+                            return (
+                                <span key={i} className="ruby-container">
+                                    <span className="ruby-bottom">{match[1]}</span>
+                                    <span className="ruby-top">{match[2]}</span>
+                                </span>
+                            );
+                        }
+                        return <span key={i}>{part}</span>;
                     })}
                 </span>
             );
@@ -96,29 +105,44 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const [syncMessage, setSyncMessage] = useState('');
             
-            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_units_v55') || '[]'));
-            const [selectedTypes, setSelectedTypes] = useState(() => JSON.parse(localStorage.getItem('k_types_v55') || '["hira"]'));
-            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v55') || 'order'); 
-            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v55') ?? 'false'));
-            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v55') ?? '0.9'));
-            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v55') ?? 'true'));
-            const [srsData, setSrsData] = useState(() => JSON.parse(localStorage.getItem('k_srs_v55') || '{}'));
-            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_url_v55') || '');
-            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_cloud_courses_v55') || '{}'));
-            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_active_id_v55') || 'builtin_50');
+            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_units_v67') || '[]'));
+            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v67') || 'order'); 
+            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v67') ?? 'false'));
+            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v67') ?? "0.9"));
+            const [showSource, setShowSource] = useState(() => JSON.parse(localStorage.getItem('k_source_v67') ?? 'true'));
+            const [srsData, setSrsData] = useState(() => JSON.parse(localStorage.getItem('k_srs_v67') || '{}'));
+            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_url_v67') || '');
+            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_cloud_courses_v67') || '{}'));
+            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_active_id_v67') || 'builtin_50');
 
-            // --- 2. 衍生狀態 ---
+            // --- 2. 資料預處理 (標準化與校正) ---
             const currentLessonItems = useMemo(() => {
-                if (activeCourseId === 'builtin_50') return DEFAULT_KANA_DATA;
-                return cloudCourses[activeCourseId] || [];
+                const rawItems = activeCourseId === 'builtin_50' ? DEFAULT_KANA_DATA : (cloudCourses[activeCourseId] || []);
+                
+                return rawItems.map(item => {
+                    const normalized = { ...item };
+                    // 欄位標準化
+                    Object.keys(item).forEach(key => {
+                        const lowKey = key.toLowerCase().trim();
+                        if (lowKey === 'unit') normalized.unit = item[key];
+                        if (lowKey === 'secondary') normalized.secondary = item[key];
+                        if (lowKey === 'secondaryreading') normalized.secondaryReading = item[key];
+                        if (lowKey === 'primary') normalized.primary = item[key];
+                        if (lowKey === 'reading') normalized.reading = item[key];
+                        if (lowKey === 'meaning') normalized.meaning = item[key];
+                        if (lowKey === 'emoji') normalized.emoji = item[key];
+                        if (lowKey === 'notes') normalized.notes = item[key];
+                        if (lowKey === 'category') normalized.category = item[key];
+                    });
+                    return normalized;
+                });
             }, [activeCourseId, cloudCourses]);
 
             const availableUnits = useMemo(() => {
-                const units = [...new Set(currentLessonItems.map(i => i.unit))].filter(Boolean);
-                return units;
+                return [...new Set(currentLessonItems.map(i => i.unit))].filter(Boolean);
             }, [currentLessonItems]);
 
-            const activeCourseTitle = activeCourseId === 'builtin_50' ? '五十音基礎' : activeCourseId;
+            const activeCourseTitle = activeCourseId === 'builtin_50' ? '基礎五十音' : activeCourseId;
             const currentCard = cards[currentIndex] || {};
             const cardId = (currentCard.primary || '') + (currentCard.reading || '');
             const srsInfo = srsData[cardId] || { step: 0, interval: 0 };
@@ -150,50 +174,26 @@
                 return { bg: 'from-blue-50 to-indigo-100', primary: 'indigo' };
             }, [view, practiceMode]);
 
-            // --- 3. 語音與同步函式 ---
+            // --- 3. 語音功能 (核心修正：直接使用 secondaryReading) ---
             const speak = useCallback((card) => {
                 if (!window.speechSynthesis || !card || !card.reading) return;
                 window.speechSynthesis.cancel();
                 
-                // 讀取主文字
                 const mainUtterance = new SpeechSynthesisUtterance(card.reading);
                 mainUtterance.lang = 'ja-JP';
-                mainUtterance.rate = speechRate;
+                mainUtterance.rate = parseFloat(speechRate);
 
-                // 解析並讀取輔助文字 (secondary) 中的讀音
-                let secondaryReading = '';
-                if (card.secondary) {
-                    const matches = card.secondary.match(/\[([^\]]+)\]/g);
-                    if (matches) secondaryReading = matches.map(m => m.slice(1, -1)).join(' ');
-                    else secondaryReading = card.secondary;
-                }
-
-                if (secondaryReading) {
+                // 鏈式播放 secondaryReading (來自試算表，不再清洗)
+                if (card.secondaryReading) {
                     mainUtterance.onend = () => {
-                        const secUtterance = new SpeechSynthesisUtterance(secondaryReading);
+                        const secUtterance = new SpeechSynthesisUtterance(card.secondaryReading);
                         secUtterance.lang = 'ja-JP';
-                        secUtterance.rate = speechRate;
-                        setTimeout(() => window.speechSynthesis.speak(secUtterance), 350);
+                        secUtterance.rate = parseFloat(speechRate);
+                        setTimeout(() => window.speechSynthesis.speak(secUtterance), 300);
                     };
                 }
                 window.speechSynthesis.speak(mainUtterance);
             }, [speechRate]);
-
-            const syncFromCloud = async () => {
-                if (!gasUrl) return;
-                setIsSyncing(true);
-                setSyncMessage('同步中...');
-                try {
-                    const response = await fetch(gasUrl);
-                    const data = await response.json();
-                    setCloudCourses(data);
-                    const tabs = Object.keys(data);
-                    if (tabs.length > 0) setActiveCourseId(tabs[0]);
-                    setSyncMessage('同步成功！');
-                    setTimeout(() => setSyncMessage(''), 3000);
-                } catch (err) { setSyncMessage('同步失敗，請檢查 URL。'); }
-                finally { setIsSyncing(false); }
-            };
 
             const generatePracticeSet = useCallback((targetMode = practiceMode) => {
                 const pool = currentLessonItems.filter(i => selectedUnits.includes(i.unit));
@@ -219,19 +219,18 @@
 
             // --- 4. 副作用 ---
             useEffect(() => {
-                localStorage.setItem('k_units_v55', JSON.stringify(selectedUnits));
-                localStorage.setItem('k_types_v55', JSON.stringify(selectedTypes));
-                localStorage.setItem('k_mode_v55', practiceMode);
-                localStorage.setItem('k_autospeak_v55', JSON.stringify(autoSpeak));
-                localStorage.setItem('k_speechrate_v55', JSON.stringify(speechRate));
-                localStorage.setItem('k_source_v55', JSON.stringify(showSource));
-                localStorage.setItem('k_srs_v55', JSON.stringify(srsData));
-                localStorage.setItem('k_gas_url_v55', gasUrl);
-                localStorage.setItem('k_cloud_courses_v55', JSON.stringify(cloudCourses));
-                localStorage.setItem('k_active_id_v55', activeCourseId);
-            }, [selectedUnits, selectedTypes, practiceMode, autoSpeak, speechRate, showSource, srsData, gasUrl, cloudCourses, activeCourseId]);
+                localStorage.setItem('k_units_v67', JSON.stringify(selectedUnits));
+                localStorage.setItem('k_mode_v67', practiceMode);
+                localStorage.setItem('k_autospeak_v67', JSON.stringify(autoSpeak));
+                localStorage.setItem('k_speechrate_v67', JSON.stringify(speechRate));
+                localStorage.setItem('k_source_v67', JSON.stringify(showSource));
+                localStorage.setItem('k_srs_v67', JSON.stringify(srsData));
+                localStorage.setItem('k_gas_url_v67', gasUrl);
+                localStorage.setItem('k_cloud_courses_v67', JSON.stringify(cloudCourses));
+                localStorage.setItem('k_active_id_v67', activeCourseId);
+            }, [selectedUnits, practiceMode, autoSpeak, speechRate, showSource, srsData, gasUrl, cloudCourses, activeCourseId]);
 
-            // [關鍵]：切換課程或單元列表變動時，自動選取第一個有效單元
+            // 自動補全選取單元
             useEffect(() => {
                 if (availableUnits.length > 0) {
                     const valid = selectedUnits.filter(u => availableUnits.includes(u));
@@ -239,7 +238,7 @@
                 }
             }, [activeCourseId, cloudCourses, availableUnits]);
 
-            // 自動更新卡片池
+            // 字卡池同步
             useEffect(() => {
                 const pool = currentLessonItems.filter(i => selectedUnits.includes(i.unit));
                 if (pool.length > 0) {
@@ -252,10 +251,42 @@
             // 自動跟讀
             useEffect(() => {
                 if (autoSpeak && cards.length > 0 && view === 'practice' && !isFlipped && currentCard.reading) {
-                    const timer = setTimeout(() => speak(currentCard), 700);
+                    const timer = setTimeout(() => speak(currentCard), 800);
                     return () => clearTimeout(timer);
                 }
             }, [currentIndex, view, autoSpeak, isFlipped, currentCard.reading, speak]);
+
+            const syncFromCloud = async () => {
+                if (!gasUrl) return;
+                setIsSyncing(true);
+                setSyncMessage('同步中...');
+                try {
+                    const response = await fetch(gasUrl);
+                    const data = await response.json();
+                    setCloudCourses(data);
+                    const tabs = Object.keys(data);
+                    if (tabs.length > 0) setActiveCourseId(tabs[0]);
+                    setSyncMessage('同步成功！');
+                    setTimeout(() => setSyncMessage(''), 3000);
+                } catch (err) { setSyncMessage('同步失敗。'); }
+                finally { setIsSyncing(false); }
+            };
+
+            const handleReview = (quality) => {
+                const kId = (currentCard.primary || '') + (currentCard.reading || '');
+                setSrsData(prev => {
+                    const now = Date.now();
+                    const record = prev[kId] || { interval: 0, ease: 2.5, step: 0 };
+                    let { interval, ease, step } = record;
+                    if (quality === 1) { interval = 0; step = 0; ease = Math.max(1.3, ease - 0.2); }
+                    else if (quality === 2) { interval = interval === 0 ? 0.5 : interval * 1.2; ease = Math.max(1.3, ease - 0.15); }
+                    else if (quality === 3) { interval = interval === 0 ? 1 : interval * ease; step++; }
+                    else { interval = interval === 0 ? 4 : interval * ease * 1.3; ease += 0.15; }
+                    const nextReview = now + (interval * 24 * 60 * 60 * 1000);
+                    return { ...prev, [kId]: { interval, ease, step, nextReview } };
+                });
+                moveNext();
+            };
 
             const moveNext = () => { if (currentIndex === cards.length - 1) generatePracticeSet(); else { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p + 1), 150); } };
             const movePrev = () => { if (currentIndex > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex(p => p - 1), 150); } };
@@ -266,7 +297,7 @@
                         <div className="flex flex-col">
                             <h1 className={`text-lg font-bold text-${theme.primary}-600 leading-none`}>Kana Master</h1>
                             <span className="text-[9px] text-slate-400 font-black tracking-widest mt-0.5 uppercase truncate max-w-[120px]">
-                                {practiceMode === 'anki' ? `Review: ${dueCount}` : 'Practice'}
+                                {practiceMode === 'anki' ? `Review: ${dueCount}` : activeCourseTitle}
                             </span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -276,7 +307,7 @@
                                 <button onClick={() => { setPracticeMode('anki'); generatePracticeSet('anki'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'anki' && view !== 'settings' ? 'bg-white shadow-sm text-violet-600' : 'text-slate-400'}`}><Icon name="brain" size={18} /></button>
                             </div>
                             <button onClick={() => setAutoSpeak(!autoSpeak)} className={`p-2 rounded-xl active:scale-90 ${autoSpeak ? `bg-${theme.primary}-600 text-white shadow-md` : 'bg-slate-100 text-slate-400'}`}><Icon name={autoSpeak ? "volume-2" : "volume-x"} size={20} /></button>
-                            <button onClick={() => setView('settings')} className={`p-2 rounded-xl ${view === 'settings' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400'}`}><Icon name="settings" size={20} /></button>
+                            <button onClick={() => setView('settings')} className={`p-2 rounded-xl transition-colors ${view === 'settings' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400'}`}><Icon name="settings" size={20} /></button>
                         </div>
                     </header>
 
@@ -304,11 +335,11 @@
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${theme.primary}-600 text-white p-3 rounded-full shadow-lg active:scale-90 transition-all`}><Icon name="volume-2" size={20}/></button>
                                                     {isWeak && <div className="absolute top-4 left-4 text-rose-500 animate-pulse"><Icon name="zap" size={20} /></div>}
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                                                    <RubyText text={currentCard.primary} className={`${currentCard.category === 'sentence' ? 'text-4xl' : 'text-8xl'} font-black text-slate-800 leading-tight mb-6 transition-all`} />
+                                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+                                                    <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? 'text-5xl' : 'text-8xl'} font-black text-slate-800 leading-none mb-8`} />
                                                     {currentCard.secondary && (
-                                                        <div className="bg-slate-50/80 px-6 py-3 rounded-2xl border border-slate-100">
-                                                            <RubyText text={currentCard.secondary} className="text-indigo-400 font-bold text-lg italic" />
+                                                        <div className="bg-slate-50/80 px-6 py-4 rounded-3xl border border-slate-100 max-w-full">
+                                                            <RubyText text={currentCard.secondary} className="text-indigo-400 font-bold text-xl italic" />
                                                         </div>
                                                     )}
                                                 </div>
@@ -329,15 +360,21 @@
                                                     </div>
                                                     {currentCard.secondary && (
                                                         <div className="bg-indigo-50/30 p-5 rounded-3xl border border-indigo-100/30 w-full">
-                                                            <RubyText text={currentCard.secondary} className="text-slate-600 font-bold text-xl" />
+                                                            <RubyText text={currentCard.secondary} className="text-slate-600 font-bold text-2xl" />
                                                         </div>
                                                     )}
-                                                    {currentCard.notes && (
-                                                        <div className="space-y-1">
-                                                            <p className="text-sm text-slate-400 font-medium px-4">{currentCard.notes}</p>
-                                                            <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">註解</p>
+                                                    <div className="space-y-2 w-full">
+                                                        {currentCard.notes && showSource && (
+                                                            <div className="bg-slate-100/50 p-3 rounded-2xl border border-slate-200/50">
+                                                                <p className="text-xs text-slate-500 font-medium">{currentCard.notes}</p>
+                                                            </div>
+                                                        )}
+                                                        {/* 調試區塊 */}
+                                                        <div className="bg-rose-50 p-2 rounded-xl border border-rose-100 mt-2 opacity-60">
+                                                            <p className="text-[8px] font-black text-rose-400 leading-tight">DEBUG VOICE (reading2):</p>
+                                                            <p className="text-xs font-mono text-rose-600 break-words">{currentCard.secondaryReading || "(empty)"}</p>
                                                         </div>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -373,7 +410,7 @@
                                         </button>
                                         {syncMessage && <p className="text-[10px] font-bold text-indigo-500 text-center">{syncMessage}</p>}
                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-black text-slate-400 ml-1">切換目前課程</span>
+                                            <span className="text-[10px] font-black text-slate-400 ml-1">選擇目前分頁課程</span>
                                             <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none outline-none">
                                                 <option value="builtin_50">五十音基礎 (內建)</option>
                                                 {Object.keys(cloudCourses).map(name => <option key={name} value={name}>{name}</option>)}
@@ -385,42 +422,12 @@
                                 <section className="space-y-3">
                                     <h2 className="text-base font-black flex items-center gap-2 text-slate-700">練習範圍設定</h2>
                                     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-lg space-y-4">
-                                        {activeCourseId === 'builtin_50' ? (
-                                            <div className="space-y-6">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {['hira', 'kata'].map(t => (
-                                                        <button key={t} onClick={() => setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className={`py-5 rounded-3xl border-2 transition-all ${selectedTypes.includes(t) ? 'border-indigo-600 bg-indigo-600 text-white shadow-xl' : 'border-slate-100 bg-white text-slate-300'}`}>
-                                                            <span className="text-2xl font-black block">{t === 'hira' ? 'あ' : 'ア'}</span><span className="text-[10px] font-black uppercase">{t === 'hira' ? '平假名' : '片假名'}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                {selectedTypes.map(type => (
-                                                    <div key={type} className="space-y-4">
-                                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest px-1 border-b border-indigo-50 pb-2">{type === 'hira' ? '平假名' : '片假名'} 列表</p>
-                                                        {Object.entries(BUILTIN_GROUPS[type]).map(([subLabel, rows]) => (
-                                                            <div key={subLabel} className="space-y-2">
-                                                                <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">{subLabel}</span>
-                                                                <div className="grid grid-cols-4 gap-2">
-                                                                    {rows.map(row => (
-                                                                        <button key={row} onClick={() => setSelectedUnits(prev => prev.includes(row) ? prev.filter(r => r !== row) : [...prev, row])} className={`py-3 rounded-2xl text-[11px] font-black border transition-all ${selectedUnits.includes(row) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-slate-100 text-slate-400'}`}>{row.replace('行', '')}</button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">單元選擇 (Unit)</span>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {availableUnits.map(unit => (
-                                                        <button key={unit} onClick={() => setSelectedUnits(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit])} className={`py-3 px-2 rounded-xl text-xs font-black transition-all border truncate ${selectedUnits.includes(unit) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}>{unit}</button>
-                                                    ))}
-                                                </div>
-                                                {availableUnits.length === 0 && <p className="text-xs text-rose-500 text-center py-4">此分頁未包含單元欄位，請檢查試算表標題。</p>}
-                                            </>
-                                        )}
+                                        <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">單元選擇 (Unit)</span>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {availableUnits.map(unit => (
+                                                <button key={unit} onClick={() => setSelectedUnits(prev => prev.includes(unit) ? prev.filter(u => u !== unit) : [...prev, unit])} className={`py-3 px-2 rounded-xl text-xs font-black transition-all border truncate ${selectedUnits.includes(unit) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white border-slate-100 text-slate-400'}`}>{unit}</button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </section>
 
@@ -433,7 +440,7 @@
                                         </div>
                                         <label className="flex items-center justify-between cursor-pointer"><div className="flex flex-col"><span className="font-black text-slate-700 text-sm">顯示註解與起源</span><span className="text-[9px] text-slate-400 font-bold uppercase">輔助記憶資訊</span></div><input type="checkbox" checked={showSource} onChange={(e) => setShowSource(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
                                         <div className="grid grid-cols-2 gap-2 pt-2">
-                                            <button onClick={() => { const blob = new Blob([JSON.stringify(srsData)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='progress.json'; a.click(); }} className="flex items-center justify-center gap-2 py-3 bg-slate-50 rounded-xl text-[10px] font-black border border-slate-100 shadow-sm"><Icon name="download" size={12} /> 備份進度</button>
+                                            <button onClick={() => { const blob = new Blob([JSON.stringify(srsData)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='progress.json'; a.click(); }} className="flex items-center justify-center gap-2 py-3 bg-slate-50 rounded-xl text-[10px] font-black border border-slate-100 shadow-sm hover:bg-slate-100 transition-colors"><Icon name="download" size={12} /> 備份進度</button>
                                             <button onClick={() => { if(confirm('確定要重置數據嗎？')) { setSrsData({}); alert('已清除'); } }} className="flex items-center justify-center gap-2 py-3 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-black border border-rose-100 shadow-sm"><Icon name="rotate-ccw" size={12} /> 重置數據</button>
                                         </div>
                                     </div>
@@ -443,7 +450,7 @@
                     </main>
 
                     {view !== 'practice' && (
-                        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-4 z-30 pointer-events-none transition-theme"><button onClick={() => { if (view === 'settings') generatePracticeSet(); else setView('practice'); }} className={`pointer-events-auto bg-slate-900 text-white px-10 py-4 rounded-full font-black shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-in slide-in-from-bottom-6`}><Icon name={view === 'settings' ? "check-circle" : "arrow-left"} size={18} /> <span className="text-sm font-black uppercase tracking-widest">{view === 'settings' ? "套用設定並開始" : "返回"}</span></button></div>
+                        <div className="fixed bottom-8 left-0 right-0 flex justify-center px-4 z-30 pointer-events-none transition-theme"><button onClick={() => { if (view === 'settings') generatePracticeSet(); else setView('practice'); }} className={`pointer-events-auto bg-slate-900 text-white px-10 py-4 rounded-full font-black shadow-2xl flex items-center gap-3 active:scale-95 transition-all animate-in slide-in-from-bottom-6`}><Icon name={view === 'settings' ? "check-circle" : "arrow-left"} size={18} /> <span className="text-sm font-black uppercase tracking-widest">{view === 'settings' ? "套用並開始練習" : "返回"}</span></button></div>
                     )}
                 </div>
             );
