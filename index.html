@@ -6,13 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master - 通用學習平台</title>
+    <title>Kana Master - Elite Platform</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0OCIgZmlsbD0iIzRmNDZlNSIvPgogIDx0ZXh0IHg9IjUwIiB5PSI2NyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNjAiIGZvbnQtd2VpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7jgYI8L3RleHQ+Cjwvc3ZnPg==">
-
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="data:application/json;base64,ewogICJpZCI6ICJrYW5hLW1hc3Rlci1wbGF0Zm9ybS11bHRpbWF0ZSIsCiAgIm5hbWUiOiAiS2FuYSBNYXN0ZXIgRWxpdGUiLAogICJzaG9ydF9uYW1lIjogIkthbmFNYXN0ZXIiLAogICJkZXNjcmlwdGlvbiI6ICLmlZsh6Z+z5ryU6K6K55S35oiQ56iLIFBXQSIsCiAgInN0YXJ0X3VybCI6ICIuLyIsCiAgInNjb3BlIjogIi4vIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZjhhY2FmZiIsCiAgInRoZW1lX2NvbG9yIjogIiM0ZjQ2ZTUiLAogICJpY29ucyI6IFsKICAgIHsKICAgICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LDxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNDgiIGZpbGw9IiM0ZjQ2ZTUiLz48dGV4dCB4PSI1MCIgeT0iNjciIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjYwIiBmb250LXdlaWdodD0iOTAwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+44GCPC90ZXh0Pjwvc3ZnPiIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2Uvc3ZnK3htbCIsCiAgICAgICJwdXJwb3NlIjogImFueSBtYXNrYWJsZSIKICAgIH0KICBdCn0=">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -38,8 +35,9 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 內建核心資料庫 ---
+        // --- 核心資料庫 (完整 50 濁音 + 拗音) ---
         const DEFAULT_KANA_DATA = [
+            // 平假名 清音
             { kana: 'あ', romaji: 'a', row: 'あ行', charType: 'hira', word: 'あき', meaning: '空位', emoji: '🈳', source: '安' },
             { kana: 'い', romaji: 'i', row: 'あ行', charType: 'hira', word: 'いりぐち', meaning: '入口', emoji: '🚪', source: '以' },
             { kana: 'う', romaji: 'u', row: 'あ行', charType: 'hira', word: 'うけつけ', meaning: '櫃檯', emoji: '💁', source: '宇' },
@@ -49,14 +47,14 @@
             { kana: 'き', romaji: 'ki', row: 'か行', charType: 'hira', word: 'きっぷ', meaning: '車票', emoji: '🎫', source: '幾' },
             { kana: 'く', romaji: 'ku', row: 'か行', charType: 'hira', word: 'くうこう', meaning: '機場', emoji: '✈️', source: '久' },
             { kana: 'け', romaji: 'ke', row: 'か行', charType: 'hira', word: 'けいたい', meaning: '手機', emoji: '📱', source: '計' },
-            { kana: 'こ', romaji: 'ko', row: 'か行', charType: 'hira', word: 'こ', meaning: '子', emoji: '🧒', source: '己' },
+            { kana: 'こ', romaji: 'ko', row: 'か行', charType: 'hira', word: 'こうばん', meaning: '派出所', emoji: '🚔', source: '己' },
             { kana: 'さ', romaji: 'sa', row: 'さ行', charType: 'hira', word: 'さいこうび', meaning: '最後尾', emoji: '🚶', source: '左' },
             { kana: 'し', romaji: 'shi', row: 'さ行', charType: 'hira', word: 'しゃしん', meaning: '照片', emoji: '📷', source: '之' },
             { kana: 'す', romaji: 'su', row: 'さ行', charType: 'hira', word: 'すし', meaning: '壽司', emoji: '🍣', source: '寸' },
             { kana: 'せ', romaji: 'se', row: 'さ行', charType: 'hira', word: 'ぜいきん', meaning: '稅金', emoji: '💸', source: '世' },
-            { kana: 'そ', romaji: 'so', row: 'さ行', charType: 'hira', word: 'そら', meaning: '天空', emoji: '🥤', source: '曽' },
+            { kana: 'そ', romaji: 'so', row: 'さ行', charType: 'hira', word: 'そと', meaning: '室外', emoji: '🌳', source: '曽' },
             { kana: 'た', romaji: 'ta', row: 'た行', charType: 'hira', word: 'ちかてつ', meaning: '地鐵', emoji: '🚇', source: '太' },
-            { kana: 'ち', romaji: 'chi', row: 'た行', charType: 'hira', word: 'ちず', meaning: '地圖', emoji: '🧀', source: '知' },
+            { kana: 'ち', romaji: 'chi', row: 'た行', charType: 'hira', word: 'ちず', meaning: '地圖', emoji: '🗺️', source: '知' },
             { kana: 'つ', romaji: 'tsu', row: 'た行', charType: 'hira', word: 'つぎ', meaning: '下一個', emoji: '➡️', source: '川' },
             { kana: 'て', romaji: 'te', row: 'た行', charType: 'hira', word: 'でぐち', meaning: '出口', emoji: '🚪', source: '天' },
             { kana: 'と', romaji: 'to', row: 'た行', charType: 'hira', word: 'とまれ', meaning: '停止', emoji: '🛑', source: '止' },
@@ -66,11 +64,11 @@
             { kana: 'ね', romaji: 'ne', row: 'な行', charType: 'hira', word: 'ねこ', meaning: '貓', emoji: '🐱', source: '祢' },
             { kana: 'の', romaji: 'no', row: 'な行', charType: 'hira', word: 'のりば', meaning: '乘車處', emoji: '🛶', source: '乃' },
             { kana: 'は', romaji: 'ha', row: 'は行', charType: 'hira', word: 'はし', meaning: '筷子', emoji: '🥢', source: '波' },
-            { kana: 'ひ', romaji: 'hi', row: 'は行', charType: 'hira', word: 'ひだり', meaning: '左邊', emoji: '🔥', source: '比' },
-            { kana: 'ふ', romaji: 'fu', row: 'は行', charType: 'hira', word: 'ふろ', meaning: '浴室', emoji: '🗻', source: '不' },
-            { kana: 'へ', romaji: 'he', row: 'は行', charType: 'hira', word: 'へいわ', meaning: '和平', emoji: '🐍', source: '幣' },
-            { kana: 'ほ', romaji: 'ho', row: 'は行', charType: 'hira', word: 'ほてる', meaning: '飯店', emoji: '⛵', source: '保' },
-            { kana: 'ま', romaji: 'ma', row: 'ま行', charType: 'hira', word: 'まど', meaning: '窗戶', emoji: '👺', source: '末' },
+            { kana: 'ひ', romaji: 'hi', row: 'は行', charType: 'hira', word: 'ひだり', meaning: '左邊', emoji: '⬅️', source: '比' },
+            { kana: 'ふ', romaji: 'fu', row: 'は行', charType: 'hira', word: 'ふろ', meaning: '浴室', emoji: '♨️', source: '不' },
+            { kana: 'へ', romaji: 'he', row: 'は行', charType: 'hira', word: 'へいわ', meaning: '和平', emoji: '🕊️', source: '幣' },
+            { kana: 'ほ', romaji: 'ho', row: 'は行', charType: 'hira', word: 'ほてる', meaning: '飯店', emoji: '🏨', source: '保' },
+            { kana: 'ま', romaji: 'ma', row: 'ま行', charType: 'hira', word: 'まど', meaning: '窗戶', emoji: '🪟', source: '末' },
             { kana: 'み', romaji: 'mi', row: 'ま行', charType: 'hira', word: 'みぎ', meaning: '右邊', emoji: '➡️', source: '三' },
             { kana: 'む', romaji: 'mu', row: 'ま行', charType: 'hira', word: 'むりょう', meaning: '免費', emoji: '🆓', source: '武' },
             { kana: 'め', romaji: 'me', row: 'ま行', charType: 'hira', word: 'めんぜい', meaning: '免稅', emoji: '🛍️', source: '女' },
@@ -85,23 +83,50 @@
             { kana: 'ろ', romaji: 'ro', row: 'ら行', charType: 'hira', word: 'ろせんず', meaning: '路線圖', emoji: '🗺️', source: '呂' },
             { kana: 'わ', romaji: 'wa', row: 'わ行', charType: 'hira', word: 'わりびき', meaning: '折扣', emoji: '🉐', source: '和' },
             { kana: 'を', romaji: 'wo', row: 'わ行', charType: 'hira', word: 'を', meaning: '助詞', emoji: '📝', source: '遠' },
-            { kana: 'ん', romaji: 'n', row: '鼻音', charType: 'hira', word: 'ん', meaning: '鼻音', emoji: '🍞', source: '无' },
+            { kana: 'ん', romaji: 'n', row: '鼻音', charType: 'hira', word: 'あんない', meaning: '導覽', emoji: 'ℹ️', source: '无' },
 
-            // 片假名
+            // 平假名 濁音 (25)
+            { kana: 'が', romaji: 'ga', row: 'が行', charType: 'hira', word: 'が', meaning: '濁音 ga', emoji: '🦢', source: 'か濁' },
+            { kana: 'ぎ', romaji: 'gi', row: 'が行', charType: 'hira', word: 'ぎんこう', meaning: '銀行', emoji: '🏦', source: 'き濁' },
+            { kana: 'ぐ', romaji: 'gu', row: 'が行', charType: 'hira', word: 'ぐ', meaning: '濁音 gu', emoji: '🥣', source: 'く濁' },
+            { kana: 'げ', romaji: 'ge', row: 'が行', charType: 'hira', word: 'げ', meaning: '濁音 ge', emoji: '🤮', source: 'け濁' },
+            { kana: 'ご', romaji: 'go', row: 'が行', charType: 'hira', word: 'ごはん', meaning: '飯', emoji: '🦍', source: 'こ濁' },
+            { kana: 'ざ', romaji: 'za', row: 'ざ行', charType: 'hira', word: 'ざ', meaning: '濁音 za', emoji: '🦓', source: 'さ濁' },
+            { kana: 'じ', romaji: 'ji', row: 'ざ行', charType: 'hira', word: 'じかん', meaning: '時間', emoji: '⌛', source: 'し濁' },
+            { kana: 'ず', romaji: 'zu', row: 'ざ行', charType: 'hira', word: 'ず', meaning: '濁音 zu', emoji: '👖', source: 'す濁' },
+            { kana: 'ぜ', romaji: 'ze', row: 'ざ行', charType: 'hira', word: 'ぜんぶ', meaning: '全部', emoji: '📦', source: 'せ濁' },
+            { kana: 'ぞ', romaji: 'zo', row: 'ざ行', charType: 'hira', word: 'ぞう', meaning: '象', emoji: '🐘', source: 'そ濁' },
+            { kana: 'だ', romaji: 'da', row: 'だ行', charType: 'hira', word: 'だるま', meaning: '達摩', emoji: '🏮', source: 'た濁' },
+            { kana: 'ぢ', romaji: 'ji', row: 'だ行', charType: 'hira', word: 'ぢ', meaning: '鼻', emoji: '👃', source: 'ち濁' },
+            { kana: 'づ', romaji: 'zu', row: 'だ行', charType: 'hira', word: 'づ', meaning: '槌', emoji: '🔨', source: 'つ濁' },
+            { kana: 'で', romaji: 'de', row: 'だ行', charType: 'hira', word: 'でんわ', meaning: '電話', emoji: '📞', source: 'て濁' },
+            { kana: 'ど', romaji: 'do', row: 'だ行', charType: 'hira', word: 'どあ', meaning: '門', emoji: '🚪', source: 'と濁' },
+            { kana: 'ば', romaji: 'ba', row: 'ば行', charType: 'hira', word: 'ばなな', meaning: '香蕉', emoji: '🍌', source: 'は濁' },
+            { kana: 'び', romaji: 'bi', row: 'ば行', charType: 'hira', word: 'びーる', meaning: '啤酒', emoji: '🍺', source: 'ひ濁' },
+            { kana: 'ぶ', romaji: 'bu', row: 'ば行', charType: 'hira', word: 'ぶた', meaning: '豬', emoji: '🐷', source: 'ふ濁' },
+            { kana: 'べ', romaji: 'be', row: 'ば行', charType: 'hira', word: 'べんとう', meaning: '便當', emoji: '🍱', source: 'へ濁' },
+            { kana: 'ぼ', romaji: 'bo', row: 'ば行', charType: 'hira', word: 'ぼうし', meaning: '帽子', emoji: '👒', source: 'ほ濁' },
+            { kana: 'ぱ', romaji: 'pa', row: 'ぱ行', charType: 'hira', word: 'ぱんだ', meaning: '熊貓', emoji: '🐼', source: 'は半' },
+            { kana: 'ぴ', romaji: 'pi', row: 'ぱ行', charType: 'hira', word: 'ぴあの', meaning: '鋼琴', emoji: '🎹', source: 'ひ半' },
+            { kana: 'ぷ', romaji: 'pu', row: 'ぱ行', charType: 'hira', word: 'きっぷ', meaning: '車票', emoji: '🎫', source: 'ふ半' },
+            { kana: 'ぺ', romaji: 'pe', row: 'ぱ行', charType: 'hira', word: 'ぺん', meaning: '筆', emoji: '🖊️', source: 'へ半' },
+            { kana: 'ぽ', romaji: 'po', row: 'ぱ行', charType: 'hira', word: 'ぽすと', meaning: '郵筒', emoji: '📮', source: 'ほ半' },
+
+            // 片假名 清音
             { kana: 'ア', romaji: 'a', row: 'ア行', charType: 'kata', word: 'アオ', meaning: '藍色', emoji: '🔵', source: '阿' },
             { kana: 'イ', romaji: 'i', row: 'ア行', charType: 'kata', word: 'イチ', meaning: '數字 1', emoji: '1️⃣', source: '伊' },
             { kana: 'ウ', romaji: 'u', row: 'ア行', charType: 'kata', word: 'ウケツケ', meaning: '櫃檯', emoji: '💁', source: '宇' },
             { kana: 'エ', romaji: 'e', row: 'ア行', charType: 'kata', word: 'エキ', meaning: '車站', emoji: '🚉', source: '江' },
-            { kana: 'オ', romaji: 'o', row: 'ア行', charType: 'kata', word: 'オミヤGE', meaning: '伴手禮', emoji: '🎁', source: '於' },
+            { kana: 'オ', romaji: 'o', row: 'ア行', charType: 'kata', word: 'オミヤゲ', meaning: '伴手禮', emoji: '🎁', source: '於' },
             { kana: 'カ', romaji: 'ka', row: 'カ行', charType: 'kata', word: 'カサ', meaning: '傘', emoji: '☂️', source: '加' },
             { kana: 'キ', romaji: 'ki', row: 'カ行', charType: 'kata', word: 'キンエン', meaning: '禁菸', emoji: '🚭', source: '幾' },
             { kana: 'ク', romaji: 'ku', row: 'カ行', charType: 'kata', word: 'クウコウ', meaning: '機場', emoji: '✈️', source: '久' },
-            { kana: 'ケ', romaji: 'ke', row: 'カ行', charType: 'kata', word: 'ケイタイ', meaning: '手機', emoji: '📱', source: '計' },
+            { kana: 'ケ', romaji: 'ke', row: 'カ行', charType: 'kata', word: 'ケイタイ', meaning: '手機', emoji: '📱', source: '介' },
             { kana: 'コ', romaji: 'ko', row: 'カ行', charType: 'kata', word: 'コウBAN', meaning: '派出所', emoji: '🚔', source: '己' },
             { kana: 'サ', romaji: 'sa', row: 'サ行', charType: 'kata', word: '服務', meaning: '服務', emoji: '🛎️', source: '散' },
             { kana: 'シ', romaji: 'shi', row: 'サ行', charType: 'kata', word: '新幹線', meaning: '新幹線', emoji: '🚄', source: '之' },
             { kana: 'ス', romaji: 'su', row: 'サ行', charType: 'kata', word: 'スシ', meaning: '壽司', emoji: '🍣', source: '須' },
-            { kana: 'セ', romaji: 'se', row: 'サ行', charType: 'kata', word: 'ぜいきん', meaning: '稅金', emoji: '💸', source: '世' },
+            { kana: 'セ', romaji: 'se', row: 'サ行', charType: 'kata', word: '稅金', meaning: '稅金', emoji: '💸', source: '世' },
             { kana: 'ソ', romaji: 'so', row: 'サ行', charType: 'kata', word: 'ソト', meaning: '室外', emoji: '🌳', source: '曽' },
             { kana: 'タ', romaji: 'ta', row: 'タ行', charType: 'kata', word: 'タクシー', meaning: '計程車', emoji: '🚕', source: '多' },
             { kana: 'チ', romaji: 'chi', row: 'タ行', charType: 'kata', word: 'チケット', meaning: '門票', emoji: '🎟️', source: '千' },
@@ -121,32 +146,54 @@
             { kana: 'マ', romaji: 'ma', row: 'マ行', charType: 'kata', word: 'マーケット', meaning: '市場', emoji: '🛒', source: '末' },
             { kana: 'ミ', romaji: 'mi', row: 'マ行', charType: 'kata', word: 'ミルク', meaning: '牛奶', emoji: '🥛', source: '三' },
             { kana: 'ム', romaji: 'mu', row: 'マ行', charType: 'kata', word: 'ムービー', meaning: '電影', emoji: '🎬', source: '牟' },
-            { kana: 'メ', romaji: 'me', row: 'マ行', charType: 'kata', word: 'メニュー', meaning: '菜單', emoji: '📋', source: '女' },
+            { kana: 'メ', romaji: 'me', row: 'マ行', charType: 'kata', word: '菜單', meaning: '菜單', emoji: '📋', source: '女' },
             { kana: 'モ', romaji: 'mo', row: 'マ行', charType: 'kata', word: 'モノレール', meaning: '單軌', emoji: '🚞', source: '毛' },
             { kana: 'ヤ', romaji: 'ya', row: 'ヤ行', charType: 'kata', word: 'ヤキトリ', meaning: '烤雞串', emoji: '🍢', source: '也' },
-            { kana: 'ユ', romaji: 'yu', row: 'ヤ行', charType: 'kata', word: 'ユーザー', meaning: '用戶', emoji: '👤', source: '弓' },
-            { kana: 'ヨ', romaji: 'yo', row: 'ヤ行', charType: 'kata', word: 'ヨット', meaning: '遊艇', emoji: '⛵', source: '與' },
-            { kana: 'ラ', romaji: 'ra', row: 'ラ行', charType: 'kata', word: 'ラーメン', meaning: '拉麵', emoji: '🍜', source: '良' },
-            { kana: 'リ', romaji: 'ri', row: 'ラ行', charType: 'kata', word: 'リュック', meaning: '背包', emoji: '🎒', source: '利' },
-            { kana: 'ル', romaji: 'ru', row: 'ラ行', charType: 'kata', word: 'ルーム', meaning: '房間', emoji: '🛌', source: '流' },
-            { kana: 'レ', romaji: 're', row: 'ラ行', charType: 'kata', word: 'レシート', meaning: '收據', emoji: '🧾', source: '禮' },
-            { kana: 'ロ', romaji: 'ro', row: 'ラ行', charType: 'kata', word: 'ロビー', meaning: '大廳', emoji: '🛋️', source: '呂' },
+            { kana: 'ユ', romaji: 'yu', row: 'ヤ行', charType: 'kata', word: '用戶', meaning: '用戶', emoji: '👤', source: '弓' },
+            { kana: 'ヨ', romaji: 'yo', row: 'ヤ行', charType: 'kata', word: '遊艇', meaning: '遊艇', emoji: '⛵', source: '與' },
+            { kana: 'ラ', romaji: 'ra', row: 'ラ行', charType: 'kata', word: '拉麵', meaning: '拉麵', emoji: '🍜', source: '良' },
+            { kana: 'リ', romaji: 'ri', row: 'ラ行', charType: 'kata', word: '背包', meaning: '背包', emoji: '🎒', source: '利' },
+            { kana: 'ル', romaji: 'ru', row: 'ラ行', charType: 'kata', word: '房間', meaning: '房間', emoji: '🛌', source: '流' },
+            { kana: 'レ', romaji: 're', row: 'ラ行', charType: 'kata', word: '收據', meaning: '收據', emoji: '🧾', source: '禮' },
+            { kana: 'ロ', romaji: 'ro', row: 'ラ行', charType: 'kata', word: '大廳', meaning: '大廳', emoji: '🛋️', source: '呂' },
             { kana: 'ワ', romaji: 'wa', row: 'ワ行', charType: 'kata', word: 'ワイファイ', meaning: 'Wi-Fi', emoji: '📶', source: '和' },
-            { kana: 'ヲ', romaji: 'wo', row: 'ワ行', charType: 'kata', word: 'ヲ', meaning: '助詞', emoji: '📝', source: '與' },
-            { kana: 'ン', romaji: 'n', row: '鼻音', charType: 'kata', word: 'パン', meaning: '麵包', emoji: '🍞', source: '尓' }
+
+            // 片假名 濁音 (25)
+            { kana: 'ガ', romaji: 'ga', row: 'ガ行', charType: 'kata', word: 'ガイド', meaning: '導遊', emoji: '🚩', source: 'カ濁' },
+            { kana: 'ギ', romaji: 'gi', row: 'ガ行', charType: 'kata', word: 'ギフト', meaning: '禮物', emoji: '🎁', source: 'キ濁' },
+            { kana: 'グ', romaji: 'gu', row: 'ガ行', charType: 'kata', word: 'グルメ', meaning: '美食', emoji: '🍴', source: 'ク濁' },
+            { kana: 'ゲ', romaji: 'ge', row: 'ガ行', charType: 'kata', word: 'ゲーム', meaning: '遊戲', emoji: '🎮', source: 'ケ濁' },
+            { kana: 'ゴ', romaji: 'go', row: 'ガ行', charType: 'kata', word: 'ゴルフ', meaning: '高爾夫', emoji: '⛳', source: 'コ濁' },
+            { kana: 'ザ', romaji: 'za', row: 'ザ行', charType: 'kata', word: 'ザ', meaning: 'ザ', emoji: '🦓', source: 'サ濁' },
+            { kana: 'ジ', romaji: 'ji', row: 'ザ行', charType: 'kata', word: 'ビジネス', meaning: '商務', emoji: '💼', source: 'シ濁' },
+            { kana: 'ズ', romaji: 'zu', row: 'ザ行', charType: 'kata', word: 'ズボン', meaning: '褲子', emoji: '👖', source: 'ス濁' },
+            { kana: 'ゼ', romaji: 'ze', row: 'ザ行', charType: 'kata', word: 'ゼリー', meaning: '果凍', emoji: '🍮', source: 'セ濁' },
+            { kana: 'ゾ', romaji: 'zo', row: 'ザ行', charType: 'kata', word: 'ゾウ', meaning: '象', emoji: '🐘', source: 'ソ濁' },
+            { kana: 'ダ', romaji: 'da', row: 'ダ行', charType: 'kata', word: 'ダブル', meaning: '雙人', emoji: '🛌', source: 'タ濁' },
+            { kana: 'ヂ', romaji: 'ji', row: 'ダ行', charType: 'kata', word: 'ヂ', meaning: 'ヂ', emoji: '👃', source: 'チ濁' },
+            { kana: 'ヅ', romaji: 'zu', row: 'ダ行', charType: 'kata', word: 'ヅ', meaning: 'ヅ', emoji: '🔨', source: 'ツ濁' },
+            { kana: 'デ', romaji: 'de', row: 'ダ行', charType: 'kata', word: 'デパート', meaning: '百貨', emoji: '🏬', source: 'テ濁' },
+            { kana: 'ド', romaji: 'do', row: 'ダ行', charType: 'kata', word: 'ドア', meaning: '門', emoji: '🚪', source: 'ト濁' },
+            { kana: 'バ', romaji: 'ba', row: 'バ行', charType: 'kata', word: 'バッグ', meaning: '包包', emoji: '🎒', source: 'ハ濁' },
+            { kana: 'ビ', romaji: 'bi', row: 'バ行', charType: 'kata', word: 'ビール', meaning: '啤酒', emoji: '🍺', source: 'ヒ濁' },
+            { kana: 'ブ', romaji: 'bu', row: 'バ行', charType: 'kata', word: 'ブタ', meaning: '豬', emoji: '🐷', source: 'フ濁' },
+            { kana: 'ベ', romaji: 'be', row: 'バ行', charType: 'kata', word: 'ベッド', meaning: '床', emoji: '🛌', source: 'ヘ濁' },
+            { kana: 'ボ', romaji: 'bo', row: 'バ行', charType: 'kata', word: 'ボール', meaning: '球', emoji: '⚽', source: 'ホ濁' },
+            { kana: 'パ', romaji: 'pa', row: 'パ行', charType: 'kata', word: 'パスポート', meaning: '護照', emoji: '🛂', source: 'ハ半' },
+            { kana: 'ピ', romaji: 'pi', row: 'パ行', charType: 'kata', word: 'ピザ', meaning: '披薩', emoji: '🍕', source: 'ヒ半' },
+            { kana: 'プ', romaji: 'pu', row: 'パ行', charType: 'kata', word: 'プリン', meaning: '布丁', emoji: '🍮', source: 'フ半' },
+            { kana: 'ペ', romaji: 'pe', row: 'パ行', charType: 'kata', word: 'ペン', meaning: '筆', emoji: '🖊️', source: 'ヘ半' },
+            { kana: 'ポ', romaji: 'po', row: 'パ行', charType: 'kata', word: 'ポスト', meaning: '郵筒', emoji: '📮', source: 'ホ半' }
         ];
 
-        // 內建分組定義
         const BUILTIN_GROUPS = {
             'hira': {
                 '基本音': ['あ行', 'か行', 'さ行', 'た行', 'な行', 'は行', 'ま行', 'や行', 'ら行', 'わ行', '鼻音'],
-                '濁音/半濁音': ['が行', 'ざ行', 'だ行', 'ば行', 'ぱ行'],
-                '拗音': ['きゃ行', 'しゃ行', 'ちゃ行', 'にゃ行', 'ひゃ行', 'みゃ行', 'りゃ行', 'ぎゃ行', 'じゃ行', 'びゃ行', 'ぴゃ行']
+                '濁音/半濁音': ['が行', 'ざ行', 'だ行', 'ば行', 'ぱ行']
             },
             'kata': {
                 '基本音': ['ア行', 'カ行', 'サ行', 'タ行', 'ナ行', 'ハ行', 'マ行', 'ヤ行', 'ラ行', 'ワ行', '鼻音'],
-                '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', 'バ行', 'パ行'],
-                '拗音': ['キャ行', 'シャ行', 'チャ行']
+                '濁音/半濁音': ['ガ行', 'ザ行', 'ダ行', 'バ行', 'パ行']
             }
         };
 
@@ -160,7 +207,7 @@
         };
 
         function App() {
-            // --- 狀態宣告 ---
+            // --- 狀態宣告 (移至最上層避免 ReferenceError) ---
             const [view, setView] = useState('practice');
             const [cards, setCards] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
@@ -169,8 +216,7 @@
             const [resetConfirm, setResetConfirm] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
             const [syncMessage, setSyncMessage] = useState('');
-            const fileInputRef = useRef(null);
-
+            
             const [selectedTypes, setSelectedTypes] = useState(() => JSON.parse(localStorage.getItem('k_types_v36') || '["hira"]'));
             const [selectedRows, setSelectedRows] = useState(() => JSON.parse(localStorage.getItem('k_rows_v36') || '["あ行"]'));
             const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v36') || 'order'); 
@@ -182,13 +228,12 @@
             const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_cloud_courses_v36') || '{}'));
             const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_active_course_id_v36') || 'builtin_50');
 
-            // --- 衍生狀態 (定義於渲染初期) ---
+            // --- 衍生狀態 (確保在所有 Hook 之後，UI 渲染前定義) ---
             const currentLessonItems = useMemo(() => {
                 if (activeCourseId === 'builtin_50') return DEFAULT_KANA_DATA;
                 return cloudCourses[activeCourseId] || [];
             }, [activeCourseId, cloudCourses]);
 
-            // 自動從目前課程中提取所有不重複的 row 屬性
             const activeCourseRows = useMemo(() => {
                 const rows = [...new Set(currentLessonItems.map(item => item.row))].filter(Boolean);
                 return rows;
@@ -199,6 +244,16 @@
             const srsInfo = srsData[cardId] || { step: 0, interval: 0 };
             const isWeak = currentCard.kana ? srsInfo.step < 2 : false;
             const activeCourseTitle = activeCourseId === 'builtin_50' ? '五十音終極大滿貫' : activeCourseId;
+
+            const dueCount = useMemo(() => {
+                const now = Date.now();
+                return currentLessonItems.filter(item => {
+                    if (activeCourseId === 'builtin_50' && (!selectedTypes.includes(item.charType) || !selectedRows.includes(item.row))) return false;
+                    if (activeCourseId !== 'builtin_50' && !selectedRows.includes(item.row)) return false;
+                    const rec = srsData[item.kana + (item.romaji || '')];
+                    return rec && rec.nextReview <= now;
+                }).length;
+            }, [srsData, selectedTypes, selectedRows, currentLessonItems, activeCourseId]);
 
             const stats = useMemo(() => {
                 const items = activeCourseId === 'builtin_50' 
@@ -213,16 +268,6 @@
                 return { total: items.length, learned, learning };
             }, [srsData, selectedTypes, selectedRows, currentLessonItems, activeCourseId]);
 
-            const dueCount = useMemo(() => {
-                const now = Date.now();
-                return currentLessonItems.filter(item => {
-                    if (activeCourseId === 'builtin_50' && (!selectedTypes.includes(item.charType) || !selectedRows.includes(item.row))) return false;
-                    if (activeCourseId !== 'builtin_50' && !selectedRows.includes(item.row)) return false;
-                    const rec = srsData[item.kana + (item.romaji || '')];
-                    return rec && rec.nextReview <= now;
-                }).length;
-            }, [srsData, selectedTypes, selectedRows, currentLessonItems, activeCourseId]);
-
             const theme = useMemo(() => {
                 if (view === 'settings') return { bg: 'from-slate-100 to-gray-200', primary: 'slate', text: 'slate' };
                 if (practiceMode === 'anki') return { bg: 'from-purple-50 to-violet-100', primary: 'violet', text: 'purple' };
@@ -230,7 +275,7 @@
                 return { bg: 'from-blue-50 to-indigo-100', primary: 'indigo', text: 'blue' };
             }, [view, practiceMode]);
 
-            // --- 持久化與同步 ---
+            // --- 副作用與函式 ---
             useEffect(() => {
                 localStorage.setItem('k_types_v36', JSON.stringify(selectedTypes));
                 localStorage.setItem('k_rows_v36', JSON.stringify(selectedRows));
@@ -243,18 +288,6 @@
                 localStorage.setItem('k_cloud_courses_v36', JSON.stringify(cloudCourses));
                 localStorage.setItem('k_active_course_id_v36', activeCourseId);
             }, [selectedTypes, selectedRows, showSource, autoSpeak, speechRate, srsData, practiceMode, gasUrl, cloudCourses, activeCourseId]);
-
-            // 切換課程時，若原本選取的 row 不存在新課程中，則預設全選或選第一個
-            useEffect(() => {
-                if (activeCourseRows.length > 0) {
-                    const validSelected = selectedRows.filter(r => activeCourseRows.includes(r));
-                    if (validSelected.length === 0) {
-                        setSelectedRows([activeCourseRows[0]]);
-                    } else {
-                        setSelectedRows(validSelected);
-                    }
-                }
-            }, [activeCourseId, cloudCourses]);
 
             const syncFromCloud = async () => {
                 if (!gasUrl) return;
@@ -279,7 +312,8 @@
                 if (targetMode === 'anki') {
                     const now = Date.now();
                     practiceCards = pool.filter(i => {
-                        const rec = srsData[i.kana + (i.romaji || '')]; 
+                        const id = i.kana + (i.romaji || '');
+                        const rec = srsData[id]; 
                         return !rec || rec.nextReview <= now; 
                     }).sort(() => Math.random() - 0.5);
                     if (practiceCards.length === 0) { setShowSRSComplete(true); setCards([]); return; }
@@ -292,7 +326,6 @@
                 setCurrentIndex(0); setIsFlipped(false); setView('practice');
             }, [selectedTypes, selectedRows, srsData, practiceMode, currentLessonItems, activeCourseId]);
 
-            // 初始化與自動更新字卡
             useEffect(() => {
                 const pool = activeCourseId === 'builtin_50'
                     ? currentLessonItems.filter(i => selectedTypes.includes(i.charType) && selectedRows.includes(i.row))
@@ -367,11 +400,18 @@
                             </span>
                         </div>
                         <div className="flex items-center gap-1">
-                            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 shadow-inner">
+                            <div className="flex bg-slate-100 p-1 rounded-xl gap-0.5 shadow-inner mr-1">
                                 <button onClick={() => { setPracticeMode('order'); generatePracticeSet('order'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'order' && view !== 'settings' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}><Icon name="list-ordered" size={18} /></button>
                                 <button onClick={() => { setPracticeMode('random'); generatePracticeSet('random'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'random' && view !== 'settings' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}><Icon name="shuffle" size={18} /></button>
                                 <button onClick={() => { setPracticeMode('anki'); generatePracticeSet('anki'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'anki' && view !== 'settings' ? 'bg-white shadow-sm text-violet-600' : 'text-slate-400'}`}><Icon name="brain" size={18} /></button>
                             </div>
+                            {/* 重新找回來的自動跟讀按鈕 */}
+                            <button 
+                                onClick={() => setAutoSpeak(!autoSpeak)} 
+                                className={`p-2 rounded-xl transition-all active:scale-90 ${autoSpeak ? `bg-${theme.primary}-600 text-white shadow-md` : 'bg-slate-100 text-slate-400'}`}
+                            >
+                                <Icon name={autoSpeak ? "volume-2" : "volume-x"} size={20} />
+                            </button>
                             <button onClick={() => setView('settings')} className={`p-2 rounded-xl transition-colors ${view === 'settings' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400'}`}><Icon name="settings" size={20} /></button>
                         </div>
                     </header>
@@ -404,7 +444,7 @@
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                                                     <span className={`${(currentCard.kana || '').length > 4 ? 'text-4xl' : (currentCard.kana || '').length > 1 ? 'text-6xl' : 'text-8xl'} font-black text-slate-800 leading-tight px-4 transition-all`}>{currentCard.kana}</span>
-                                                    <div className="mt-4"><p className={`text-${theme.primary}-600 font-black text-2xl tracking-tight`}>{currentCard.word}</p><p className="text-slate-400 text-xs font-bold tracking-wide mt-1 uppercase">{currentCard.meaning}</p></div>
+                                                    <div className="mt-4"><p className={`text-${theme.primary}-600 font-black text-2xl tracking-tight`}>{currentCard.word}</p><p className="text-slate-400 text-xs font-bold tracking-wide uppercase mt-1">{currentCard.meaning}</p></div>
                                                 </div>
                                             </div>
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-white transition-opacity ${isFlipped ? 'flex' : 'hidden'}`}>
@@ -479,7 +519,6 @@
                                     <h2 className="text-base font-black flex items-center gap-2 text-slate-700">練習單元 / 範圍設定</h2>
                                     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-lg space-y-4">
                                         {activeCourseId === 'builtin_50' ? (
-                                            // 內建課程的美觀分類佈局
                                             <div className="space-y-6">
                                                 <div className="grid grid-cols-2 gap-3">
                                                     {[ {id: 'hira', label: '平假名', icon: 'あ'}, {id: 'kata', label: '片假名', icon: 'ア'} ].map(t => (
@@ -505,7 +544,6 @@
                                                 ))}
                                             </div>
                                         ) : (
-                                            // 雲端自訂課程的動態按鈕佈局 (自動偵測 row)
                                             <div className="space-y-2">
                                                 <span className="text-[10px] font-bold text-slate-400 ml-1 uppercase">課程單元選擇</span>
                                                 <div className="grid grid-cols-2 gap-2">
@@ -519,7 +557,6 @@
                                                         </button>
                                                     ))}
                                                 </div>
-                                                {activeCourseRows.length === 0 && <p className="text-[10px] text-rose-500 text-center py-4">此課程資料未包含 row 屬性，無法進行單元篩選。</p>}
                                             </div>
                                         )}
                                     </div>
@@ -541,7 +578,7 @@
                                     </div>
                                     <div className="p-4 bg-white/50 border border-slate-100 rounded-[2rem]">
                                         {!resetConfirm ? (
-                                            <button onClick={() => setResetConfirm(true)} className="w-full flex items-center justify-between text-rose-500 font-bold text-xs uppercase tracking-tight px-2"><span>抹除所有學習數據</span><Icon name="rotate-ccw" size={14} /></button>
+                                            <button onClick={() => setResetConfirm(true)} className="w-full flex items-center justify-between text-rose-500 font-black text-xs uppercase border border-rose-100 rounded-xl active:bg-rose-50 px-2 h-10 transition-all"><Icon name="rotate-ccw" size={14} /> 抹除所有進度資料</button>
                                         ) : (
                                             <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2"><span className="text-[10px] font-black text-rose-600 flex-1 uppercase">確定重置？</span><button onClick={() => setResetConfirm(false)} className="px-3 py-1.5 bg-slate-100 rounded-xl text-[10px] font-black uppercase">取消</button><button onClick={() => { setSrsData({}); setResetConfirm(false); generatePracticeSet(); }} className="px-3 py-1.5 bg-rose-600 text-white rounded-xl text-[10px] font-black shadow-lg">確認</button></div>
                                         )}
