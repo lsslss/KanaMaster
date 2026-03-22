@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master - Hybrid Cache v3.6.1</title>
+    <title>Kana Master - Hybrid Cache v3.8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -31,14 +31,13 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 1. IndexedDB 手機本地快取 ---
-        const DB_NAME = "KanaMaster_Hybrid_v36";
+        // --- 1. IndexedDB 手機本地快取 (版本 83) ---
+        const DB_NAME = "KanaMaster_Hybrid_v83";
         const STORE_NAME = "local_audio";
-        const initDB = () => new Promise((resolve, reject) => {
+        const initDB = () => new Promise((resolve) => {
             const request = indexedDB.open(DB_NAME, 1);
             request.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME); };
             request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
         });
         const getLocal = async (key) => {
             const db = await initDB();
@@ -46,8 +45,7 @@
         };
         const saveLocal = async (key, val) => {
             const db = await initDB();
-            const tx = db.transaction(STORE_NAME, "readwrite");
-            tx.objectStore(STORE_NAME).put(val, key);
+            db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(val, key);
         };
 
         // --- 2. 音訊工具 ---
@@ -78,11 +76,10 @@
 
         const Icon = ({ name, size = 24, className = "" }) => {
             useEffect(() => { if (window.lucide) lucide.createIcons(); }, [name, className]);
-            return <span className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}><i data-lucide={name} style={{ width: size, height: size }}></i></span>;
+            return <span key={name} className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size }}><i data-lucide={name} style={{ width: size, height: size }}></i></span>;
         };
 
         function App() {
-            // --- 狀態宣告 ---
             const [view, setView] = useState('practice');
             const [cards, setCards] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
@@ -90,23 +87,23 @@
             const [isSyncing, setIsSyncing] = useState(false);
             const [ttsStatus, setTtsStatus] = useState('Standby');
             
-            // 設定持久化
-            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_v36') || '');
-            const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('k_use_n_v36') ?? 'true'));
-            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_u_v36') || '[]'));
-            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v36') || 'order');
-            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v36') ?? 'false'));
-            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v36') ?? "1.0"));
-            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_c_v36') || '{}'));
-            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_a_v36') || 'builtin');
+            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('k_gas_v83') || '');
+            const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('k_use_n_v83') ?? 'true'));
+            const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('k_u_v83') || '[]'));
+            const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('k_mode_v83') || 'order');
+            const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('k_autospeak_v83') ?? 'false'));
+            const [speechRate, setSpeechRate] = useState(() => JSON.parse(localStorage.getItem('k_speechrate_v83') ?? "1.0"));
+            const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('k_c_v83') || '{}'));
+            const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('k_a_v83') || 'builtin');
             
             const audioCache = useRef({}); 
             const fetchingRef = useRef(new Set());
 
-            // --- 混合語音獲取邏輯 ---
             const fetchVoice = async (primary, secondary) => {
-                if (!gasUrl || !useNeural) return null;
-                const text = secondary ? `${primary}。 ${secondary}` : primary;
+                if (!gasUrl || !useNeural || !primary) return null;
+                // 核心修復：確保即使 secondary 是空的，傳遞給 GAS 的 text 也是乾淨的
+                const text = (secondary && secondary.toString().trim() !== "") ? `${primary}。 ${secondary}` : primary;
+                
                 if (audioCache.current[text]) return audioCache.current[text];
                 if (fetchingRef.current.has(text)) return null;
 
@@ -121,22 +118,20 @@
                         return audio;
                     }
 
-                    setTtsStatus('Fetching: GAS/Cloud...');
+                    setTtsStatus('Fetching: Cloud...');
                     const response = await fetch(`${gasUrl}${gasUrl.includes('?') ? '&' : '?'}action=tts&text=${encodeURIComponent(text)}`);
                     const result = await response.json();
                     
-                    if (result.error) throw new Error(result.error);
                     if (result.data) {
                         setTtsStatus(result.source === 'cloud_cache' ? 'Hit: Cloud Drive' : 'Hit: Gemini API');
                         await saveLocal(text, result.data); 
-                        const url = pcmToWav(result.data);
-                        const audio = new Audio(url);
+                        const audio = new Audio(pcmToWav(result.data));
                         audioCache.current[text] = audio;
                         return audio;
                     }
-                    return null;
+                    throw new Error(result.error || 'No Data');
                 } catch (err) {
-                    setTtsStatus(`Err: ${err.message.substring(0, 30)}`);
+                    setTtsStatus(`Err: ${err.message.substring(0, 20)}`);
                     return null;
                 } finally {
                     fetchingRef.current.delete(text);
@@ -157,8 +152,7 @@
                 setTtsStatus('System Fallback');
                 window.speechSynthesis.cancel();
                 const main = new SpeechSynthesisUtterance(card.reading);
-                main.lang = 'ja-JP';
-                main.rate = parseFloat(speechRate);
+                main.lang = 'ja-JP'; main.rate = parseFloat(speechRate);
                 if (card.secondaryreading) main.onend = () => { 
                     const sec = new SpeechSynthesisUtterance(card.secondaryreading);
                     sec.lang = 'ja-JP'; sec.rate = parseFloat(speechRate);
@@ -167,19 +161,15 @@
                 window.speechSynthesis.speak(main);
             }, [gasUrl, useNeural, speechRate]);
 
-            // --- 核心練習生成邏輯 ---
             const generatePracticeSet = useCallback((targetMode = practiceMode) => {
                 const pool = currentLessonItems.filter(i => selectedUnits.includes(i.unit));
                 if (pool.length === 0) { setCards([]); return; }
-                
-                let practiceCards = (targetMode === 'random') ? [...pool].sort(() => Math.random() - 0.5) : pool;
+                const practiceCards = (targetMode === 'random') ? [...pool].sort(() => Math.random() - 0.5) : pool;
                 setCards(practiceCards);
-                setCurrentIndex(0); 
-                setIsFlipped(false); 
-                setView('practice'); 
-            }, [selectedUnits, practiceMode, currentLessonItems]);
+                setCurrentIndex(0); setIsFlipped(false); setView('practice'); 
+            }, [selectedUnits, practiceMode, cloudCourses, activeCourseId]);
 
-            // 預載：停留 3 秒後預載下一張
+            // 預載策略
             useEffect(() => {
                 if (!useNeural || !gasUrl || cards.length === 0) return;
                 const timer = setTimeout(() => {
@@ -189,11 +179,8 @@
                 return () => clearTimeout(timer);
             }, [currentIndex, cards, gasUrl, useNeural]);
 
-            // 基礎資料處理
-            const DEFAULT_KANA_DATA = [{ unit: "あ行", category: "kana", primary: "あ[あ]", reading: "あ", meaning: "平假名 a", secondary: "空[あ]き", secondaryreading: "あき", emoji: "🈳" }];
-            
             const currentLessonItems = useMemo(() => {
-                const raw = activeCourseId === 'builtin' ? DEFAULT_KANA_DATA : (cloudCourses[activeCourseId] || []);
+                const raw = (activeCourseId === 'builtin' || !cloudCourses[activeCourseId]) ? [{ unit: "あ行", category: "kana", primary: "あ[あ]", reading: "あ", meaning: "平假名 a", secondary: "空[あ]き", secondaryreading: "あki", emoji: "🈳" }] : cloudCourses[activeCourseId];
                 return raw.map(i => {
                     const n = { ...i };
                     Object.keys(i).forEach(k => n[k.toLowerCase().trim()] = i[k]);
@@ -205,23 +192,18 @@
             const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
 
             useEffect(() => {
-                localStorage.setItem('k_gas_v36', gasUrl);
-                localStorage.setItem('k_use_n_v36', JSON.stringify(useNeural));
-                localStorage.setItem('k_u_v36', JSON.stringify(selectedUnits));
-                localStorage.setItem('k_mode_v36', practiceMode);
-                localStorage.setItem('k_autospeak_v36', JSON.stringify(autoSpeak));
-                localStorage.setItem('k_speechrate_v36', JSON.stringify(speechRate));
-                localStorage.setItem('k_c_v36', JSON.stringify(cloudCourses));
-                localStorage.setItem('k_a_v36', activeCourseId);
+                localStorage.setItem('k_gas_v83', gasUrl);
+                localStorage.setItem('k_use_n_v83', JSON.stringify(useNeural));
+                localStorage.setItem('k_u_v83', JSON.stringify(selectedUnits));
+                localStorage.setItem('k_mode_v83', practiceMode);
+                localStorage.setItem('k_autospeak_v83', JSON.stringify(autoSpeak));
+                localStorage.setItem('k_speechrate_v83', JSON.stringify(speechRate));
+                localStorage.setItem('k_c_v83', JSON.stringify(cloudCourses));
+                localStorage.setItem('k_a_v83', activeCourseId);
             }, [gasUrl, useNeural, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId]);
 
-            useEffect(() => {
-                if (availableUnits.length > 0 && selectedUnits.length === 0) setSelectedUnits([availableUnits[0]]);
-            }, [availableUnits]);
-
-            useEffect(() => {
-                if (view === 'practice' && cards.length === 0) generatePracticeSet();
-            }, [view]);
+            useEffect(() => { if (availableUnits.length > 0 && selectedUnits.length === 0) setSelectedUnits([availableUnits[0]]); }, [availableUnits]);
+            useEffect(() => { if (view === 'practice' && cards.length === 0) generatePracticeSet(); }, [view]);
 
             // 自動跟讀
             useEffect(() => {
@@ -257,6 +239,7 @@
                                 <button onClick={() => { setPracticeMode('order'); if(view==='settings') generatePracticeSet('order'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'order' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}><Icon name="list-ordered" size={18} /></button>
                                 <button onClick={() => { setPracticeMode('random'); if(view==='settings') generatePracticeSet('random'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'random' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}><Icon name="shuffle" size={18} /></button>
                             </div>
+                            {/* 修復圖示邏輯：autoSpeak 為 true 顯示 volume-2 */}
                             <button onClick={() => setAutoSpeak(!autoSpeak)} className={`p-2 rounded-xl active:scale-90 ${autoSpeak ? `bg-${themePrimary}-600 text-white shadow-md` : 'bg-slate-100 text-slate-400'}`}><Icon name={autoSpeak ? "volume-2" : "volume-x"} size={20} /></button>
                             <button onClick={() => { if(view === 'settings') generatePracticeSet(); else setView('settings'); }} className={`p-2 rounded-xl transition-colors ${view === 'settings' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-400'}`}><Icon name="settings" size={20} /></button>
                         </div>
@@ -288,12 +271,12 @@
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={24}/></button>
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-6 overflow-y-auto no-scrollbar">
-                                                    <div className="space-y-1"><h3 className="text-4xl font-black text-indigo-600 leading-tight">{currentCard.meaning}</h3><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">翻譯</p></div>
+                                                    <div className="space-y-1"><h3 className="text-4xl font-black text-indigo-600 tracking-tight">{currentCard.meaning}</h3><p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">翻譯</p></div>
                                                     {currentCard.secondary && <div className="bg-indigo-50/50 p-5 rounded-3xl w-full"><RubyText text={currentCard.secondary} className="text-slate-600 font-bold text-4xl" /></div>}
                                                     <div className="w-full text-left space-y-2">
                                                         {currentCard.notes && <div className="bg-slate-50 p-4 rounded-2xl border text-sm text-slate-500 leading-relaxed">{currentCard.notes}</div>}
                                                         <div className="bg-rose-50 p-2 rounded-xl border border-rose-100 opacity-60">
-                                                            <div className="flex justify-between items-center mb-1 text-[8px] font-black uppercase"><p className="text-rose-400">Hybrid Diagnosis</p><span className="bg-emerald-500 text-white px-1 rounded">{ttsStatus}</span></div>
+                                                            <div className="flex justify-between items-center mb-1 text-[8px] font-black uppercase"><p className="text-rose-400">Hybrid Monitor</p><span className="bg-emerald-500 text-white px-1 rounded">{ttsStatus}</span></div>
                                                             <p className="text-[9px] font-mono text-rose-600 truncate">{currentCard.reading} {currentCard.secondaryreading}</p>
                                                         </div>
                                                     </div>
@@ -313,31 +296,27 @@
                         {view === 'settings' && (
                             <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
                                 <section className="bg-white p-5 rounded-[2rem] border shadow-lg space-y-4">
-                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700">混合語音快取庫 (Hybrid Cache)</h2>
-                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                                        <p className="text-xs text-emerald-700 font-bold leading-relaxed">此模式會自動將語音永久備份至「雲端硬碟」與「手機硬碟」，達成 API 零消耗練習。</p>
+                                    <h2 className="text-base font-black flex items-center gap-2 text-slate-700">語音快取診斷</h2>
+                                    <button onClick={() => speak(currentCard)} className="w-full py-4 rounded-xl bg-indigo-500 text-white font-bold shadow-md active:scale-95">測試高品質發音</button>
+                                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400">目前狀態</p>
+                                        <p className="text-xs font-mono font-bold text-emerald-500">{ttsStatus}</p>
                                     </div>
-                                    <button onClick={() => speak(currentCard)} className="w-full py-4 rounded-xl bg-indigo-500 text-white font-bold shadow-md active:scale-95">測試並建立雲端快取</button>
-                                    <div className="flex flex-col space-y-4">
-                                        <label className="flex items-center justify-between p-1 cursor-pointer">
-                                            <div className="flex flex-col"><span className="text-sm font-bold">啟用雙層快取發音</span><span className="text-[9px] text-indigo-400 uppercase font-black">自動同步 Drive 檔案</span></div>
-                                            <input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" />
-                                        </label>
-                                        <div className="space-y-2">
-                                            <h3 className="text-xs font-black text-slate-400 uppercase ml-1">發音速度: {speechRate}x</h3>
-                                            <input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
-                                        </div>
+                                    <label className="flex items-center justify-between p-1 cursor-pointer">
+                                        <div className="flex flex-col"><span className="text-sm font-bold">啟用雙層快取發音</span><span className="text-[9px] text-indigo-400 uppercase font-black tracking-tighter">自動備份雲端與手機</span></div>
+                                        <input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" />
+                                    </label>
+                                    <div className="space-y-2">
+                                        <h3 className="text-xs font-black text-slate-400 uppercase ml-1">發音速度: {speechRate}x</h3>
+                                        <input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
                                     </div>
                                 </section>
                                 <section className="bg-white p-5 rounded-[2rem] border shadow-lg space-y-4">
                                     <h2 className="text-base font-black text-slate-700">教材與連結</h2>
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-black text-slate-400 ml-1">GAS WEB APP URL</span>
-                                        <input type="text" placeholder="貼上 GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-indigo-500" />
-                                    </div>
+                                    <input type="text" placeholder="貼上 GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none focus:ring-2 focus:ring-indigo-500" />
                                     <button onClick={syncFromCloud} disabled={isSyncing || !gasUrl} className={`w-full py-4 rounded-xl bg-indigo-600 text-white font-bold shadow-md active:scale-95`}>同步教材分頁</button>
                                     <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 rounded-xl text-sm font-bold border-none">
-                                        <option value="builtin">預設課程 (無資料)</option>
+                                        <option value="builtin">預設課程 (基礎五十音)</option>
                                         {Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}
                                     </select>
                                 </section>
