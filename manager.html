@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kana Master - 語音管理 v4.2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .log-enter { animation: slideIn 0.2s ease-out forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+        .cooldown-mode { animation: pulse-orange 2s ease-in-out infinite; }
+        @keyframes pulse-orange { 0%, 100% { border-color: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.2); } 50% { border-color: #d97706; box-shadow: 0 0 15px rgba(217,119,6,0.4); } }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const Icon = ({ name, size = 20, className = "" }) => {
+            useEffect(() => { if (window.lucide) lucide.createIcons(); }, [name]);
+            return (
+                <span className={`inline-flex items-center justify-center shrink-0 ${className}`} style={{ width: size, height: size }}>
+                    <i data-lucide={name} style={{ width: size, height: size }}></i>
+                </span>
+            );
+        };
+
+        function App() {
+            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_mgr_url') || '');
+            const [apiKey, setApiKey] = useState(() => localStorage.getItem('km_mgr_key') || '');
+            const [ttsEngine, setTtsEngine] = useState('google');
+            const [status, setStatus] = useState('Standby');
+            const [logs, setLogs] = useState([]);
+            const [itemsToProcess, setItemsToProcess] = useState([]);
+            const [isWorking, setIsWorking] = useState(false);
+            const [progress, setProgress] = useState({ current: 0, total: 0 });
+            const [countdown, setCountdown] = useState(0);
+            
+            const stopRef = useRef(false);
+
+            const addLog = (msg, type = 'info') => {
+                const id = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                setLogs(prev => [{ id, msg, type, time: new Date() }, ...prev].slice(0, 100));
+            };
+
+            const smartSleep = async (ms) => {
+                const start = Date.now();
+                while (Date.now() - start < ms) {
+                    if (stopRef.current) return true;
+                    const remaining = Math.max(0, Math.ceil((ms - (Date.now() - start)) / 1000));
+                    setCountdown(remaining);
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                setCountdown(0);
+                return false;
+            };
+
+            const callGoogleTranslate = async (text) => {
+                try {
+                    const response = await fetch(`${gasUrl}?action=proxy_google_tts&text=${encodeURIComponent(text)}`);
+                    if (!response.ok) throw new Error("GAS 代理服務連線失敗");
+                    const result = await response.json();
+                    if (result.data) return result.data;
+                    throw new Error(result.error || "未知錯誤");
+                } catch (e) {
+                    throw new Error("Google 代理請求失敗: " + e.message);
+                }
+            };
+
+            const callGeminiDirectly = async (text, retryCount = 0) => {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                const salt = Math.random().toString(36).substring(7);
+                const payload = {
+                    contents: [{ parts: [{ text: `ID:[${salt}]. Task: Read for Japanese lesson: ${text}` }] }],
+                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } } },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                if (response.status === 429) {
+                    const errorData = await response.json();
+                    const waitMatch = (errorData.error?.message || "").match(/retry in ([\d.]+)s/);
+                    let waitMs = (waitMatch ? parseFloat(waitMatch[1]) + 5 : 65) * 1000;
+                    
+                    if (retryCount < 10) {
+                        addLog(`⚠️ Gemini 限額，等待 ${Math.round(waitMs/1000)}s...`, 'warn');
+                        setStatus('Cooldown');
+                        if (await smartSleep(waitMs)) throw new Error("USER_STOP");
+                        setStatus('Working');
+                        return callGeminiDirectly(text, retryCount + 1);
+                    }
+                    throw new Error("Gemini 重試過多次");
+                }
+
+                const res = await response.json();
+                return res.candidates[0].content.parts.find(p => p.inlineData).inlineData.data;
+            };
+
+            const analyzeCache = async () => {
+                if (!gasUrl) return addLog('請先填寫 GAS URL', 'error');
+                setStatus('Analyzing...');
+                try {
+                    const syncRes = await fetch(`${gasUrl}?action=sync`);
+                    const courses = await syncRes.json();
+                    const cacheRes = await fetch(`${gasUrl}?action=list_cache`);
+                    const { files } = await cacheRes.json();
+                    const cacheSet = new Set(files.map(f => f.replace('.txt', '')));
+
+                    let allItems = [];
+                    Object.values(courses).forEach(items => {
+                        items.forEach(item => {
+                            if (!item.reading) return;
+                            const text = (item.secondaryreading && item.secondaryreading.trim() !== "") ? `${item.reading}。 ${item.secondaryreading}` : item.reading;
+                            allItems.push(text);
+                        });
+                    });
+
+                    const uniqueItems = [...new Set(allItems)];
+                    const missing = uniqueItems.filter(text => !cacheSet.has(text.replace(/[\\\/\:\*\?\"\<\>\|]/g, "_")));
+
+                    setItemsToProcess(missing);
+                    setProgress({ current: 0, total: missing.length });
+                    setStatus(missing.length === 0 ? 'Synced' : 'Ready');
+                    addLog(`分析完畢：發現 ${missing.length} 個缺失語音檔案。`, 'success');
+                } catch (e) {
+                    setStatus('Error');
+                    addLog('連線失敗: ' + e.message, 'error');
+                }
+            };
+
+            const startBatch = async () => {
+                if (ttsEngine === 'gemini' && !apiKey) return addLog('Gemini 模式需要 API Key', 'error');
+                setIsWorking(true);
+                stopRef.current = false;
+                setStatus('Working');
+                addLog(`🚀 啟動補完程序 (引擎: ${ttsEngine.toUpperCase()})`);
+
+                for (let i = 0; i < itemsToProcess.length; i++) {
+                    if (stopRef.current) break;
+
+                    const text = itemsToProcess[i];
+                    setProgress(prev => ({ ...prev, current: i + 1 }));
+                    addLog(`[${i+1}/${itemsToProcess.length}] 正在生成: ${text.substring(0, 10)}...`);
+
+                    try {
+                        const base64Data = (ttsEngine === 'google') ? await callGoogleTranslate(text) : await callGeminiDirectly(text);
+
+                        if (stopRef.current) break;
+
+                        await fetch(gasUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: "save_audio", text: text, data: base64Data })
+                        });
+                        
+                        addLog(`✅ 成功同步`, 'success');
+
+                        if (i < itemsToProcess.length - 1) {
+                            let wait = (ttsEngine === 'google') ? 1000 : 18000;
+                            wait += Math.random() * 2000;
+                            if (await smartSleep(wait)) break;
+                        }
+                    } catch (e) {
+                        addLog(`❌ 失敗: ${e.message}`, 'error');
+                        if (e.message === "USER_STOP") break;
+                    }
+                }
+
+                setIsWorking(false);
+                setCountdown(0);
+                setStatus('Finished');
+                addLog('🏁 作業結束。');
+            };
+
+            useEffect(() => { 
+                localStorage.setItem('km_mgr_url', gasUrl); 
+                localStorage.setItem('km_mgr_key', apiKey);
+            }, [gasUrl, apiKey]);
+
+            return (
+                <div className="max-w-4xl mx-auto p-6 md:p-10">
+                    <header className="mb-10 flex justify-between items-center">
+                        <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-3 italic text-left">
+                            <Icon name="zap" size={28} className="text-amber-400" /> KANA MASTER MGR v4.2
+                        </h1>
+                        <div className={`px-4 py-1 rounded-lg text-xs font-bold border transition-all ${isWorking ? (countdown > 0 ? 'cooldown-mode border-amber-500 text-amber-500' : 'border-indigo-500 text-indigo-400') : 'border-slate-700 text-slate-500'}`}>
+                            {status.toUpperCase()} {countdown > 0 ? `(${countdown}s)` : ''}
+                        </div>
+                    </header>
+
+                    <main className="grid md:grid-cols-5 gap-6">
+                        <div className="md:col-span-2 space-y-6 text-left text-sm">
+                            <section className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 shadow-xl space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">GAS Web App URL</label>
+                                    <input type="text" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-indigo-300 outline-none border border-transparent focus:border-indigo-500/50" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">選擇發音引擎</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button onClick={() => setTtsEngine('google')} className={`py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'google' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Google 代理</button>
+                                        <button onClick={() => setTtsEngine('gemini')} className={`py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'gemini' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Gemini TTS</button>
+                                    </div>
+                                </div>
+                                {ttsEngine === 'gemini' && (
+                                    <div className="space-y-1 animate-in fade-in duration-300">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Gemini API Key</label>
+                                        <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="在此輸入 Key..." className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-emerald-300 outline-none border border-transparent focus:border-emerald-500/50" />
+                                    </div>
+                                )}
+                                <div className="pt-2 space-y-2">
+                                    <button onClick={analyzeCache} disabled={isWorking} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold transition-all disabled:opacity-50">1. 分析庫存缺口</button>
+                                    <button onClick={startBatch} disabled={itemsToProcess.length === 0 || isWorking} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 active:scale-95">2. 開始自動補完</button>
+                                    {isWorking && <button onClick={() => stopRef.current = true} className="w-full bg-rose-600/20 text-rose-500 border border-rose-500/40 py-3 rounded-xl font-bold transition-all hover:bg-rose-600/30">立即停止作業</button>}
+                                </div>
+                            </section>
+
+                            <section className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">總體進度</h2>
+                                    <span className="text-[10px] font-mono text-slate-500">{progress.current}/{progress.total}</span>
+                                </div>
+                                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden shadow-inner">
+                                    <div className={`h-full transition-all duration-500 ${ttsEngine === 'google' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} style={{ width: `${progress.total > 0 ? (progress.current/progress.total)*100 : 0}%` }}></div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div className="md:col-span-3 h-[620px] flex flex-col">
+                            <div className="bg-slate-800 flex-1 rounded-[2.5rem] border border-slate-700 flex flex-col overflow-hidden shadow-2xl">
+                                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center font-black text-[10px] text-slate-500 uppercase tracking-widest">即時日誌 (代理模式)</div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] no-scrollbar">
+                                    {logs.map(log => (
+                                        <div key={log.id} className={`p-3 rounded-xl border log-enter ${
+                                            log.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                            log.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                            log.type === 'warn' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold' :
+                                            log.type === 'dim' ? 'bg-transparent text-slate-600 border-transparent italic' :
+                                            'bg-slate-900/50 text-slate-300 border-slate-700/50'
+                                        }`}>{log.msg}</div>
+                                    ))}
+                                    {logs.length === 0 && <div className="h-full flex items-center justify-center text-slate-700 italic">等待操作指令...</div>}
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root')); 
+        root.render(<App />);
+    </script>
+</body>
+</html>
