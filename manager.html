@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kana Master - 語音管理 v4.2</title>
+    <title>Kana Master - 語音管理 v4.6</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,10 +11,13 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .log-enter { animation: slideIn 0.2s ease-out forwards; }
+        .log-enter { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
         .cooldown-mode { animation: pulse-orange 2s ease-in-out infinite; }
         @keyframes pulse-orange { 0%, 100% { border-color: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.2); } 50% { border-color: #d97706; box-shadow: 0 0 15px rgba(217,119,6,0.4); } }
+        .voicevox-glow { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+        .file-protocol-warning { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -35,15 +38,25 @@
         function App() {
             const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_mgr_url') || '');
             const [apiKey, setApiKey] = useState(() => localStorage.getItem('km_mgr_key') || '');
-            const [ttsEngine, setTtsEngine] = useState('google');
+            const [ttsEngine, setTtsEngine] = useState(() => localStorage.getItem('km_mgr_engine') || 'voicevox');
+            const [vvSpeaker, setVvSpeaker] = useState(() => localStorage.getItem('km_mgr_vv_id') || '8');
+            const [vvHost, setVvHost] = useState(() => localStorage.getItem('km_mgr_vv_host') || '127.0.0.1');
+            
             const [status, setStatus] = useState('Standby');
             const [logs, setLogs] = useState([]);
             const [itemsToProcess, setItemsToProcess] = useState([]);
             const [isWorking, setIsWorking] = useState(false);
             const [progress, setProgress] = useState({ current: 0, total: 0 });
             const [countdown, setCountdown] = useState(0);
+            const [isFileProtocol, setIsFileProtocol] = useState(false);
             
             const stopRef = useRef(false);
+
+            useEffect(() => {
+                if (window.location.protocol === 'file:') {
+                    setIsFileProtocol(true);
+                }
+            }, []);
 
             const addLog = (msg, type = 'info') => {
                 const id = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
@@ -62,44 +75,86 @@
                 return false;
             };
 
-            const callGoogleTranslate = async (text) => {
+            const checkVoicevoxStatus = async () => {
+                const baseUrl = `http://${vvHost}:50021`;
+                addLog(`正在檢測 VOICEVOX (${vvHost})...`, "dim");
                 try {
-                    const response = await fetch(`${gasUrl}?action=proxy_google_tts&text=${encodeURIComponent(text)}`);
-                    if (!response.ok) throw new Error("GAS 代理服務連線失敗");
-                    const result = await response.json();
-                    if (result.data) return result.data;
-                    throw new Error(result.error || "未知錯誤");
+                    // 移除 mode: 'cors' 嘗試使用更寬鬆的請求
+                    const res = await fetch(`${baseUrl}/version`, { 
+                        method: 'GET',
+                        cache: 'no-cache'
+                    });
+                    if (res.ok) {
+                        const version = await res.text();
+                        addLog(`✅ 連線成功！版本: ${version}`, "success");
+                        return true;
+                    }
                 } catch (e) {
-                    throw new Error("Google 代理請求失敗: " + e.message);
+                    addLog("❌ 連線失敗。這通常是瀏覽器攔截了本地檔案的跨來源請求。", "error");
+                    if (isFileProtocol) {
+                        addLog("💡 偵測到您使用「檔案直接開啟」，請參考左側選單下方的 Linux 修復教學。", "warn");
+                    }
                 }
+                return false;
+            };
+
+            const callVoicevox = async (text) => {
+                const baseUrl = `http://${vvHost}:50021`;
+                try {
+                    const queryRes = await fetch(`${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${vvSpeaker}`, { 
+                        method: 'POST'
+                    });
+                    if (!queryRes.ok) throw new Error("VOICEVOX Query 失敗");
+                    const queryJson = await queryRes.json();
+
+                    const synthRes = await fetch(`${baseUrl}/synthesis?speaker=${vvSpeaker}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(queryJson)
+                    });
+                    if (!synthRes.ok) throw new Error("VOICEVOX Synthesis 失敗");
+                    
+                    const blob = await synthRes.blob();
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (e) {
+                    throw new Error("VOICEVOX 通訊錯誤，請檢查伺服器是否斷開。");
+                }
+            };
+
+            const callGoogleTranslate = async (text) => {
+                const response = await fetch(`${gasUrl}?action=proxy_google_tts&text=${encodeURIComponent(text)}`);
+                const result = await response.json();
+                if (result.data) return result.data;
+                throw new Error(result.error || "Google 代理失敗");
             };
 
             const callGeminiDirectly = async (text, retryCount = 0) => {
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
                 const salt = Math.random().toString(36).substring(7);
                 const payload = {
-                    contents: [{ parts: [{ text: `ID:[${salt}]. Task: Read for Japanese lesson: ${text}` }] }],
+                    contents: [{ parts: [{ text: `ID:[${salt}]. Read: ${text}` }] }],
                     generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } } },
                     model: "gemini-2.5-flash-preview-tts"
                 };
 
                 const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-
                 if (response.status === 429) {
                     const errorData = await response.json();
                     const waitMatch = (errorData.error?.message || "").match(/retry in ([\d.]+)s/);
                     let waitMs = (waitMatch ? parseFloat(waitMatch[1]) + 5 : 65) * 1000;
-                    
-                    if (retryCount < 10) {
-                        addLog(`⚠️ Gemini 限額，等待 ${Math.round(waitMs/1000)}s...`, 'warn');
+                    if (retryCount < 5) {
+                        addLog(`Gemini 限額中，等待 ${Math.round(waitMs/1000)}s...`, 'warn');
                         setStatus('Cooldown');
                         if (await smartSleep(waitMs)) throw new Error("USER_STOP");
                         setStatus('Working');
                         return callGeminiDirectly(text, retryCount + 1);
                     }
-                    throw new Error("Gemini 重試過多次");
                 }
-
                 const res = await response.json();
                 return res.candidates[0].content.parts.find(p => p.inlineData).inlineData.data;
             };
@@ -129,7 +184,7 @@
                     setItemsToProcess(missing);
                     setProgress({ current: 0, total: missing.length });
                     setStatus(missing.length === 0 ? 'Synced' : 'Ready');
-                    addLog(`分析完畢：發現 ${missing.length} 個缺失語音檔案。`, 'success');
+                    addLog(`分析完畢：發現 ${missing.length} 個缺失檔案。`, 'success');
                 } catch (e) {
                     setStatus('Error');
                     addLog('連線失敗: ' + e.message, 'error');
@@ -137,33 +192,30 @@
             };
 
             const startBatch = async () => {
-                if (ttsEngine === 'gemini' && !apiKey) return addLog('Gemini 模式需要 API Key', 'error');
+                if (ttsEngine === 'voicevox') {
+                    const isOk = await checkVoicevoxStatus();
+                    if (!isOk) return;
+                }
+
                 setIsWorking(true);
                 stopRef.current = false;
                 setStatus('Working');
-                addLog(`🚀 啟動補完程序 (引擎: ${ttsEngine.toUpperCase()})`);
+                addLog(`🚀 程序啟動 (引擎: ${ttsEngine.toUpperCase()})`);
 
                 for (let i = 0; i < itemsToProcess.length; i++) {
                     if (stopRef.current) break;
-
                     const text = itemsToProcess[i];
                     setProgress(prev => ({ ...prev, current: i + 1 }));
-                    addLog(`[${i+1}/${itemsToProcess.length}] 正在生成: ${text.substring(0, 10)}...`);
+                    addLog(`[${i+1}/${itemsToProcess.length}] 處理中: ${text.substring(0, 10)}...`);
 
                     try {
-                        const base64Data = (ttsEngine === 'google') ? await callGoogleTranslate(text) : await callGeminiDirectly(text);
-
+                        const base64Data = (ttsEngine === 'voicevox') ? await callVoicevox(text) : (ttsEngine === 'google' ? await callGoogleTranslate(text) : await callGeminiDirectly(text));
                         if (stopRef.current) break;
-
-                        await fetch(gasUrl, {
-                            method: 'POST',
-                            body: JSON.stringify({ action: "save_audio", text: text, data: base64Data })
-                        });
-                        
-                        addLog(`✅ 成功同步`, 'success');
+                        await fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: "save_audio", text: text, data: base64Data }) });
+                        addLog(`✅ 成功並同步至雲端`, 'success');
 
                         if (i < itemsToProcess.length - 1) {
-                            let wait = (ttsEngine === 'google') ? 1000 : 18000;
+                            let wait = (ttsEngine === 'voicevox') ? 1500 : (ttsEngine === 'google' ? 1000 : 18000);
                             wait += Math.random() * 2000;
                             if (await smartSleep(wait)) break;
                         }
@@ -172,7 +224,6 @@
                         if (e.message === "USER_STOP") break;
                     }
                 }
-
                 setIsWorking(false);
                 setCountdown(0);
                 setStatus('Finished');
@@ -182,13 +233,16 @@
             useEffect(() => { 
                 localStorage.setItem('km_mgr_url', gasUrl); 
                 localStorage.setItem('km_mgr_key', apiKey);
-            }, [gasUrl, apiKey]);
+                localStorage.setItem('km_mgr_engine', ttsEngine);
+                localStorage.setItem('km_mgr_vv_id', vvSpeaker);
+                localStorage.setItem('km_mgr_vv_host', vvHost);
+            }, [gasUrl, apiKey, ttsEngine, vvSpeaker, vvHost]);
 
             return (
-                <div className="max-w-4xl mx-auto p-6 md:p-10">
+                <div className="max-w-4xl mx-auto p-6 md:p-10 text-left">
                     <header className="mb-10 flex justify-between items-center">
-                        <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-3 italic text-left">
-                            <Icon name="zap" size={28} className="text-amber-400" /> KANA MASTER MGR v4.2
+                        <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-3 italic">
+                            <Icon name="activity" size={28} className="text-emerald-400" /> KANA MASTER MGR v4.6
                         </h1>
                         <div className={`px-4 py-1 rounded-lg text-xs font-bold border transition-all ${isWorking ? (countdown > 0 ? 'cooldown-mode border-amber-500 text-amber-500' : 'border-indigo-500 text-indigo-400') : 'border-slate-700 text-slate-500'}`}>
                             {status.toUpperCase()} {countdown > 0 ? `(${countdown}s)` : ''}
@@ -196,57 +250,87 @@
                     </header>
 
                     <main className="grid md:grid-cols-5 gap-6">
-                        <div className="md:col-span-2 space-y-6 text-left text-sm">
+                        <div className="md:col-span-2 space-y-6 text-sm text-left">
+                            {isFileProtocol && (
+                                <section className="bg-rose-900/20 border border-rose-500/30 p-4 rounded-2xl file-protocol-warning">
+                                    <h3 className="text-rose-400 font-bold text-xs flex items-center gap-2 mb-2">
+                                        <Icon name="alert-triangle" size={14} /> 偵測到直接開啟檔案 (file://)
+                                    </h3>
+                                    <p className="text-[10px] text-rose-200/70 leading-relaxed mb-3">
+                                        直接開啟 HTML 檔案會被瀏覽器阻擋對 localhost 的存取。請開啟終端機，在該資料夾執行：
+                                    </p>
+                                    <code className="block bg-black/40 p-2 rounded font-mono text-[9px] text-emerald-400 mb-2 select-all cursor-copy">
+                                        python3 -m http.server 8000
+                                    </code>
+                                    <p className="text-[10px] text-rose-200/70">
+                                        然後在瀏覽器輸入 <b>http://localhost:8000</b> 即可 100% 正常運作。
+                                    </p>
+                                </section>
+                            )}
+
                             <section className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 shadow-xl space-y-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-black text-slate-500 uppercase ml-1">GAS Web App URL</label>
-                                    <input type="text" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-indigo-300 outline-none border border-transparent focus:border-indigo-500/50" />
+                                    <input type="text" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-indigo-300 outline-none border border-transparent focus:border-indigo-500" />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">選擇發音引擎</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button onClick={() => setTtsEngine('google')} className={`py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'google' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Google 代理</button>
-                                        <button onClick={() => setTtsEngine('gemini')} className={`py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'gemini' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Gemini TTS</button>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-widest">發音引擎</label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        <button onClick={() => setTtsEngine('voicevox')} className={`w-full py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'voicevox' ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400 voicevox-glow' : 'border-slate-700 text-slate-500 opacity-50'}`}>
+                                            VOICEVOX (本地端)
+                                        </button>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button onClick={() => setTtsEngine('google')} className={`py-2 rounded-xl border-2 font-bold transition-all ${ttsEngine === 'google' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Google 代理</button>
+                                            <button onClick={() => setTtsEngine('gemini')} className={`py-2 rounded-xl border-2 font-bold transition-all ${ttsEngine === 'gemini' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Gemini TTS</button>
+                                        </div>
                                     </div>
                                 </div>
-                                {ttsEngine === 'gemini' && (
-                                    <div className="space-y-1 animate-in fade-in duration-300">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase ml-1">Gemini API Key</label>
-                                        <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="在此輸入 Key..." className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-emerald-300 outline-none border border-transparent focus:border-emerald-500/50" />
+                                
+                                {ttsEngine === 'voicevox' && (
+                                    <div className="space-y-3 p-3 bg-slate-900/50 rounded-xl border border-slate-700 animate-in fade-in">
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 font-mono">連線地址 (當前: {vvHost})</label>
+                                            <div className="grid grid-cols-2 gap-1 mt-1">
+                                                <button onClick={() => setVvHost('127.0.0.1')} className={`py-1 text-[10px] rounded ${vvHost === '127.0.0.1' ? 'bg-emerald-600 text-white' : 'bg-slate-800'}`}>127.0.0.1</button>
+                                                <button onClick={() => setVvHost('localhost')} className={`py-1 text-[10px] rounded ${vvHost === 'localhost' ? 'bg-emerald-600 text-white' : 'bg-slate-800'}`}>localhost</button>
+                                            </div>
+                                        </div>
+                                        <button onClick={checkVoicevoxStatus} className="w-full bg-slate-700 py-1.5 rounded-lg text-xs hover:bg-slate-600 transition-colors">點此測試連線</button>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 font-mono">Speaker ID: {vvSpeaker}</label>
+                                            <input type="range" min="0" max="60" value={vvSpeaker} onChange={(e) => setVvSpeaker(e.target.value)} className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+                                        </div>
                                     </div>
                                 )}
+
                                 <div className="pt-2 space-y-2">
-                                    <button onClick={analyzeCache} disabled={isWorking} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold transition-all disabled:opacity-50">1. 分析庫存缺口</button>
-                                    <button onClick={startBatch} disabled={itemsToProcess.length === 0 || isWorking} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 active:scale-95">2. 開始自動補完</button>
-                                    {isWorking && <button onClick={() => stopRef.current = true} className="w-full bg-rose-600/20 text-rose-500 border border-rose-500/40 py-3 rounded-xl font-bold transition-all hover:bg-rose-600/30">立即停止作業</button>}
+                                    <button onClick={analyzeCache} disabled={isWorking} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold transition-all">1. 分析庫存缺口</button>
+                                    <button onClick={startBatch} disabled={itemsToProcess.length === 0 || isWorking} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">2. 開始自動補完</button>
+                                    {isWorking && <button onClick={() => stopRef.current = true} className="w-full bg-rose-600/20 text-rose-500 border border-rose-500/40 py-3 rounded-xl font-bold">停止作業</button>}
                                 </div>
                             </section>
 
                             <section className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700 space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">總體進度</h2>
-                                    <span className="text-[10px] font-mono text-slate-500">{progress.current}/{progress.total}</span>
-                                </div>
-                                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden shadow-inner">
-                                    <div className={`h-full transition-all duration-500 ${ttsEngine === 'google' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'}`} style={{ width: `${progress.total > 0 ? (progress.current/progress.total)*100 : 0}%` }}></div>
+                                <h2 className="text-xs font-black text-slate-400 uppercase">補完進度 {progress.current}/{progress.total}</h2>
+                                <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
+                                    <div className={`h-full transition-all duration-500 ${ttsEngine === 'voicevox' ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${progress.total > 0 ? (progress.current/progress.total)*100 : 0}%` }}></div>
                                 </div>
                             </section>
                         </div>
 
-                        <div className="md:col-span-3 h-[620px] flex flex-col">
+                        <div className="md:col-span-3 h-[720px] flex flex-col">
                             <div className="bg-slate-800 flex-1 rounded-[2.5rem] border border-slate-700 flex flex-col overflow-hidden shadow-2xl">
-                                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center font-black text-[10px] text-slate-500 uppercase tracking-widest">即時日誌 (代理模式)</div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] no-scrollbar">
+                                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center font-black text-[10px] text-slate-500 uppercase">日誌監控 (v4.6)</div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] no-scrollbar text-left">
                                     {logs.map(log => (
                                         <div key={log.id} className={`p-3 rounded-xl border log-enter ${
                                             log.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                                             log.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                            log.type === 'warn' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold' :
-                                            log.type === 'dim' ? 'bg-transparent text-slate-600 border-transparent italic' :
+                                            log.type === 'warn' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                                             'bg-slate-900/50 text-slate-300 border-slate-700/50'
                                         }`}>{log.msg}</div>
                                     ))}
-                                    {logs.length === 0 && <div className="h-full flex items-center justify-center text-slate-700 italic">等待操作指令...</div>}
+                                    {logs.length === 0 && <div className="h-full flex items-center justify-center text-slate-700 italic">準備就緒...</div>}
                                 </div>
                             </div>
                         </div>
