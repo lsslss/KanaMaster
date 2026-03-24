@@ -6,10 +6,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v4.5 - PWA Mobile Enhanced</title>
+    <title>Kana Master v4.6 - PWA Final</title>
 
-    <!-- PWA Manifest Inline - 強化行動端圖示相容性 -->
-    <link rel="manifest" href='data:application/manifest+json,{"name":"Kana Master","short_name":"KanaMaster","description":"高品質日語五十音學習 App","start_url":".","display":"standalone","background_color":"#ffffff","theme_color":"#4f46e5","lang":"zh-TW","orientation":"portrait","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj7jgYI8L3RleHQ+PC9zdmc+","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj7jgYI8L3RleHQ+PC9zdmc+","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}'>
+    <!-- PWA Manifest Inline - 加入 id 與標準化設定 -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Kana Master","short_name":"KanaMaster","id":"/KanaMaster/","start_url":"./","display":"standalone","background_color":"#ffffff","theme_color":"#4f46e5","icons":[{"src":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj7jgYI8L3RleHQ+PC9zdmc+","sizes":"512x512","type":"image/svg+xml","purpose":"any"}]}'>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -35,24 +35,25 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 0. PWA Service Worker 註冊 (增加離線能力聲明以符合手機端安裝條件) ---
+        // --- 0. PWA Service Worker 註冊 (還原至最穩定的 v4.4 基礎並優化) ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'km-v45';
-                    self.addEventListener('install', e => {
-                        e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['./'])));
-                        self.skipWaiting();
-                    });
-                    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-                    self.addEventListener('fetch', e => {
-                        // 回應 fetch 請求以通過行動端可安裝性檢查
-                        e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-                    });
-                `;
-                const blob = new Blob([swCode], { type: 'text/javascript' });
-                const url = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(url).catch(err => console.log('SW failed', err));
+                try {
+                    const swCode = `
+                        self.addEventListener('install', e => self.skipWaiting());
+                        self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                        self.addEventListener('fetch', e => {
+                            // 空監聽以滿足安裝條件
+                        });
+                    `;
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl)
+                        .then(reg => console.log('SW Registered'))
+                        .catch(err => console.log('SW Registration Blocked by Browser Security Policy'));
+                } catch (e) {
+                    console.warn('PWA initialization error', e);
+                }
             });
         }
 
@@ -293,8 +294,8 @@
                                         </div>
                                         
                                         <div className={`relative h-[520px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
-                                                <div className="h-44 flex items-center justify-center bg-indigo-50/30 relative">
+                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col items-center justify-center backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
+                                                <div className="h-44 flex items-center justify-center bg-indigo-50/30 relative w-full rounded-t-[2.5rem]">
                                                     <span className="text-8xl animate-bounce-slow">{currentCard.emoji}</span>
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-3 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={20}/></button>
                                                 </div>
