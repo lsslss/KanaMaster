@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v4.7 - PWA Pro</title>
+    <title>Kana Master v4.8 - PWA Pro Max</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -14,51 +14,50 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- 
-      【實體 Service Worker 檔案說明】
-      由於手機瀏覽器限制 blob: 協議，請將以下代碼另存為 "sw.js" 並放在 test.html 旁邊：
-      
-      const CACHE_NAME = 'km-v47';
-      self.addEventListener('install', e => self.skipWaiting());
-      self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-      self.addEventListener('fetch', e => { e.respondWith(fetch(e.request)); });
-    -->
-
     <script>
-        // 1. 動態生成 Manifest 以支援非 index.html 的檔名 (如 test.html)
-        const currentFileName = window.location.pathname.split('/').pop() || 'index.html';
-        const manifest = {
-            "name": "Kana Master",
-            "short_name": "KanaMaster",
-            "start_url": "./" + currentFileName,
-            "display": "standalone",
-            "background_color": "#ffffff",
-            "theme_color": "#4f46e5",
-            "icons": [{
-                "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj7jgYI8L3RleHQ+PC9zdmc+",
-                "sizes": "512x512",
-                "type": "image/svg+xml"
-            }]
-        };
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        const link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = manifestURL;
-        document.head.appendChild(link);
+        /**
+         * v4.8 修復說明：
+         * 電腦版 Chrome 不接受 Blob Manifest 裡的相對路徑。
+         * 我們將 start_url 改為絕對路徑以通過驗證。
+         */
+        (function() {
+            // 1. 動態生成絕對路徑的 Manifest
+            const absoluteUrl = window.location.origin + window.location.pathname;
+            const manifest = {
+                "name": "Kana Master",
+                "short_name": "KanaMaster",
+                "id": absoluteUrl, 
+                "start_url": absoluteUrl,
+                "display": "standalone",
+                "background_color": "#ffffff",
+                "theme_color": "#4f46e5",
+                "icons": [{
+                    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjMwMCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtd2VpZ2h0PSJib2xkIj7jgYI8L3RleHQ+PC9zdmc+",
+                    "sizes": "512x512",
+                    "type": "image/svg+xml",
+                    "purpose": "any"
+                }]
+            };
 
-        // 2. 註冊實體 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // 這裡改為讀取實體檔案 sw.js，徹底解決 blob: 被封鎖的問題
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('PWA SW 註冊成功');
-                }).catch(err => {
-                    console.warn('PWA SW 註冊失敗，請確認 sw.js 是否與 HTML 放在一起:', err);
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            const link = document.createElement('link');
+            link.rel = 'manifest';
+            link.href = manifestURL;
+            document.head.appendChild(link);
+
+            // 2. 註冊實體 Service Worker (保持 sw.js 實體檔案要求)
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js').then(reg => {
+                        console.log('PWA SW 註冊成功');
+                    }).catch(err => {
+                        console.warn('PWA SW 註冊失敗:', err);
+                    });
                 });
-            });
-        }
+            }
+        })();
     </script>
 
     <style>
@@ -147,6 +146,7 @@
             const [localCacheCount, setLocalCacheCount] = useState(0);
             const [downloadProgress, setDownloadProgress] = useState(null);
             
+            // 使用 v43 作為存儲 Key (保持持久化邏輯)
             const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_gas_v43') || '');
             const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('km_use_n_v43') ?? 'true'));
             const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('km_u_v43') || '[]'));
@@ -289,6 +289,19 @@
 
             const themePrimary = practiceMode === 'random' ? 'amber' : 'indigo';
 
+            const syncFromCloud = async () => {
+                if (!gasUrl) return;
+                setIsSyncing(true);
+                try {
+                    const res = await fetch(`${gasUrl}${gasUrl.includes('?') ? '&' : '?'}action=sync`);
+                    const data = await res.json();
+                    setCloudCourses(data);
+                    const ks = Object.keys(data);
+                    if (ks.length > 0) setActiveCourseId(ks[0]);
+                } catch(e) { alert('同步失敗'); }
+                finally { setIsSyncing(false); }
+            };
+
             return (
                 <div className="min-h-screen bg-slate-50 flex flex-col transition-all duration-500">
                     <header className="bg-white border-b px-4 py-3 sticky top-0 z-30 flex justify-between items-center h-14 shadow-sm">
@@ -317,7 +330,7 @@
                                         </div>
                                         
                                         <div className={`relative h-[520px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col items-center justify-center backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
+                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                                 <div className="h-44 flex items-center justify-center bg-indigo-50/30 relative w-full rounded-t-[2.5rem]">
                                                     <span className="text-8xl animate-bounce-slow">{currentCard.emoji}</span>
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-3 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={20}/></button>
@@ -356,14 +369,14 @@
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
-                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-4 rounded-3xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm">PREV</button>
-                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-4 rounded-3xl font-black shadow-xl active:scale-95 transition-all`}>NEXT</button>
+                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-4 rounded-3xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs">PREV</button>
+                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-4 rounded-3xl font-black shadow-xl active:scale-95 transition-all text-xs`}>NEXT</button>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4">
                                         <Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p>
-                                        <button onClick={() => setView('settings')} className="bg-slate-200 text-slate-500 px-6 py-2 rounded-full text-xs uppercase">前往設定</button>
+                                        <button onClick={() => setView('settings')} className="bg-slate-200 text-slate-500 px-6 py-2 rounded-full text-xs uppercase text-xs">前往設定</button>
                                     </div>
                                 )}
                             </div>
@@ -387,7 +400,7 @@
                                 <section className="bg-white p-6 rounded-[2.5rem] shadow-lg space-y-4 text-left">
                                     <h2 className="text-sm font-black text-slate-700 uppercase tracking-widest">連線與同步</h2>
                                     <input type="text" placeholder="貼上 GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4 bg-slate-50 rounded-2xl text-xs font-mono border-none outline-none focus:ring-2 focus:ring-indigo-500" />
-                                    <button onClick={async () => { setIsSyncing(true); const res = await fetch(`${gasUrl}${gasUrl.includes('?') ? '&' : '?'}action=sync`); const data = await res.json(); setCloudCourses(data); setIsSyncing(false); }} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-2xl bg-slate-800 text-white font-bold text-sm active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>{isSyncing ? '同步中...' : '從雲端同步課程清單'}</button>
+                                    <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-2xl bg-slate-800 text-white font-bold text-sm active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>{isSyncing ? '同步中...' : '從雲端同步課程清單'}</button>
                                     <div className="space-y-1">
                                         <label className="text-[10px] font-black text-slate-400 uppercase ml-1">當前課程清單</label>
                                         <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-4 bg-slate-50 rounded-2xl text-xs font-bold border-none outline-none"><option value="builtin">預設五十音教學</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select>
@@ -402,8 +415,8 @@
                                         ))}
                                     </div>
                                     <div className="pt-4 space-y-4">
-                                        <div className="flex justify-between items-center"><span className="text-xs font-bold">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2" /></div>
-                                        <label className="flex items-center justify-between cursor-pointer"><div className="flex flex-col"><span className="text-xs font-bold">啟用高品質神經發音</span><span className="text-[9px] text-indigo-400 font-black uppercase tracking-tighter">VOICEVOX / Gemini TTS</span></div><input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
+                                        <div className="flex justify-between items-center"><span className="text-xs font-bold font-black">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2" /></div>
+                                        <label className="flex items-center justify-between cursor-pointer"><div className="flex flex-col"><span className="text-xs font-bold font-black">啟用高品質神經發音</span><span className="text-[9px] text-indigo-400 font-black uppercase tracking-tighter">VOICEVOX / Gemini TTS</span></div><input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
                                     </div>
                                 </section>
 
