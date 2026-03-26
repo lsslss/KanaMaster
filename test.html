@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v5.5 - Compact UI</title>
+    <title>Kana Master v5.6 - Layout Fix</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -97,12 +97,14 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
+        const APP_VERSION = "v5.6";
+
         // --- 使用手冊內容 ---
         const MANUAL_LESSON = [
             { unit: "教學", category: "sentence", primary: "點[てん]選[せん]卡[か]片[へん]", reading: "てんせんかへん", meaning: "點擊卡片可翻面查看意義", secondary: "翻[はん]面[めん]測[そく]試[し]", secondaryreading: "はんめんそくし", emoji: "👇", notes: "這是最基礎的操作。" },
             { unit: "教學", category: "sentence", primary: "聆[れい]聽[ちょう]發[はつ]音[おん]", reading: "れいちょうはつおん", meaning: "點選喇叭圖示聽高品質發音", secondary: "聽[ちょう]解[かい]練[れん]習[しゅう]", secondaryreading: "ちょうかいれんしゅう", emoji: "🔊", notes: "建議在設定中啟用神經發音。" },
             { unit: "教學", category: "sentence", primary: "同[どう]步[ほ]課[か]程[てい]", reading: "どうほかてい", meaning: "前往設定貼上 GAS URL 同步雲端內容", secondary: "雲[うん]端[たん]同[どう]步[ほ]機[き]制[せい]", secondaryreading: "過長內容測試測試測試測試", emoji: "☁️", notes: "第一次使用請先完成同步。" },
-            { unit: "教學", category: "sentence", primary: "壓[あつ]縮[しゅく]版[はん]面[めん]", reading: "あつしゅくはんめん", meaning: "進度條與單元名稱合併，節省空間", secondary: "更[さら]にスリムに", secondaryreading: "さらにすりむに", emoji: "📏", notes: "這是 v5.5 針對手機端做的優化。" }
+            { unit: "教學", category: "sentence", primary: "佈[ふ]局[きょく]修[しゅう]正[せい]", reading: "ふきょくしゅうせい", meaning: "優化手機垂直空間，防止按鈕溢出", secondary: "v5.6 バージョン", secondaryreading: "バージョンごてんろく", emoji: "📱", notes: "解決了 Pixel 9 等手機的顯示問題。" }
         ];
 
         // --- IndexedDB ---
@@ -326,7 +328,10 @@
                 <div className={`w-full max-w-md h-full bg-slate-50 flex flex-col overflow-hidden relative md:shadow-2xl md:border-x border-slate-200 ${isLargeFont ? 'large-font-mode' : ''}`}>
                     <header className="bg-white border-b px-4 py-2 sticky top-0 z-30 flex justify-between items-center shrink-0 shadow-sm h-14">
                         <div className="flex flex-col text-left">
-                            <h1 className={`text-base font-black text-${themePrimary}-600 leading-none`}>Kana Master</h1>
+                            <div className="flex items-center gap-1.5">
+                                <h1 className={`text-base font-black text-${themePrimary}-600 leading-none`}>Kana Master</h1>
+                                <span className="text-[8px] font-black bg-slate-100 text-slate-400 px-1 rounded leading-tight">{APP_VERSION}</span>
+                            </div>
                             <span className="text-[9px] text-slate-400 font-black uppercase mt-0.5 truncate max-w-[100px]">{activeCourseId === 'builtin' ? 'Guide' : activeCourseId}</span>
                         </div>
                         <div className="flex items-center gap-1">
@@ -341,10 +346,9 @@
 
                     <main className="flex-1 overflow-y-auto no-scrollbar p-4 flex flex-col min-h-0">
                         {view === 'practice' && (
-                            <div className="flex-1 flex flex-col space-y-4 animate-in fade-in duration-500">
+                            <div className="flex-1 flex flex-col space-y-3 animate-in fade-in duration-500 overflow-hidden">
                                 {cards.length > 0 ? (
                                     <>
-                                        {/* 優化點：進度條與資訊合併為一列 */}
                                         <div className="shrink-0 flex items-center gap-3 px-1">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap leading-none shrink-0">
                                                 {currentCard.unit}
@@ -360,7 +364,7 @@
                                             </span>
                                         </div>
                                         
-                                        <div className={`relative flex-1 min-h-[350px] max-h-[550px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
+                                        <div className={`relative flex-1 min-h-[280px] max-h-[500px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                                 <div className="h-[20%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
                                                     <span className={`${isLargeFont ? 'text-7xl' : 'text-6xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
@@ -371,7 +375,7 @@
                                                         <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-4xl' : 'text-3xl') : (isLargeFont ? 'text-7xl' : 'text-6xl')} font-black text-slate-800 transition-all break-words`} />
                                                     </div>
                                                     {currentCard.secondary && (
-                                                        <div className="mt-2 mb-4 bg-indigo-50/50 px-5 py-3 rounded-[1.5rem] border border-indigo-100/30 w-full min-h-[4rem] flex items-center justify-center">
+                                                        <div className="mt-2 mb-4 bg-indigo-50/50 px-5 py-3 rounded-[1.5rem] border border-indigo-100/30 w-full min-h-[4rem] flex items-center justify-center shrink-0">
                                                             <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-2xl' : 'text-xl'} text-indigo-600 font-bold italic leading-tight`} />
                                                         </div>
                                                     )}
@@ -379,7 +383,7 @@
                                             </div>
 
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 ${isFlipped ? 'flex' : 'hidden'}`}>
-                                                <div className="h-14 flex items-center justify-between px-6 bg-slate-50 border-b shrink-0">
+                                                <div className="h-12 flex items-center justify-between px-6 bg-slate-50 border-b shrink-0">
                                                     <div className="flex items-center gap-2"><span className="text-xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={18}/></button>
                                                 </div>
@@ -399,7 +403,8 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 shrink-0 pb-[var(--safe-bottom)]">
+                                        {/* 按鈕區塊：設定 shrink-0 並配合 safe-bottom 確保不溢出 */}
+                                        <div className="grid grid-cols-2 gap-4 shrink-0 pb-[calc(var(--safe-bottom)+0.5rem)] pt-1">
                                             <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase tracking-widest">PREV</button>
                                             <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest`}>NEXT</button>
                                         </div>
@@ -411,7 +416,7 @@
                         )}
 
                         {view === 'settings' && (
-                            <div className="space-y-4 text-left animate-in slide-in-from-bottom-4 duration-500 pb-28">
+                            <div className="space-y-4 text-left animate-in slide-in-from-bottom-4 duration-500 pb-36">
                                 <section className="bg-white p-5 rounded-[2.5rem] shadow-lg space-y-4">
                                     <div className="flex justify-between items-center"><h2 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Icon name="book-open" size={16} className="text-indigo-600" /> 學習範圍</h2><span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Main</span></div>
                                     <div className="space-y-1">
@@ -477,8 +482,9 @@
                             </div>
                         )}
 
+                        {/* 固定按鈕：定位改為基於 safe-bottom 偏移 */}
                         {view === 'settings' && (
-                            <div className="absolute bottom-8 left-4 right-4 flex justify-center z-40">
+                            <div className="absolute bottom-[calc(var(--safe-bottom)+1rem)] left-4 right-4 flex justify-center z-40">
                                 <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-4 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={18} /><span className="text-xs font-black uppercase tracking-widest font-black text-xs">套用設定並開始</span></button>
                             </div>
                         )}
