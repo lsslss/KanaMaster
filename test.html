@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v6.0 - Full Features</title>
+    <title>Kana Master v6.1 - Custom Experience</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -81,12 +81,14 @@
         @media (min-width: 768px) { body { background-color: #e2e8f0; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; } }
         @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
         .animate-slide-down { animation: slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-        @media (prefers-color-scheme: dark) {
-            .dark-mode-bg { background-color: #0f172a !important; }
-            .dark-mode-card { background-color: #1e293b !important; border-color: #334155 !important; }
-            .dark-mode-text { color: #f1f5f9 !important; }
-            .dark-mode-secondary { background-color: #334155 !important; }
-        }
+
+        /* 深色模式樣式定義：使用 .dark-mode 類別控制 */
+        .dark-mode .dark-mode-bg { background-color: #0f172a !important; }
+        .dark-mode .dark-mode-card { background-color: #1e293b !important; border-color: #334155 !important; }
+        .dark-mode .dark-mode-text { color: #f1f5f9 !important; }
+        .dark-mode .dark-mode-secondary { background-color: #334155 !important; }
+        .dark-mode .dark-mode-border { border-color: #334155 !important; }
+        .dark-mode .dark-mode-header { background-color: #1e293b !important; border-color: #0f172a !important; }
     </style>
 </head>
 <body class="select-none overflow-hidden text-slate-800 font-sans h-screen">
@@ -95,15 +97,13 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v6.0";
-
-        const vibrate = (ms = 15) => { if (navigator.vibrate) navigator.vibrate(ms); };
+        const APP_VERSION = "v6.1";
 
         const MANUAL_LESSON = [
-            { unit: "教學", category: "sentence", primary: "切[せつ]換[かん]模[も]式[しき]", reading: "せつかんもしき", meaning: "在 Header 切換循序或隨機練習", secondary: "練[れん]習[しゅう]モード", secondaryreading: "れんしゅうもーど", emoji: "🔄", notes: "這是剛才修復的功能。" },
-            { unit: "教學", category: "sentence", primary: "自[じ]動[どう]播[は]放[ほう]", reading: "じどうほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "自[じ]動[どう]巡[じゅん]回[かい]", secondaryreading: "じどうじゅんかい", emoji: "▶️", notes: "適合通勤或睡前複習。" },
-            { unit: "教學", category: "sentence", primary: "螢[えい]幕[まく]常[じょう]亮[りょう]", reading: "えいまくじょうりょう", meaning: "練習中螢幕不會自動變暗關閉", secondary: "畫[が]面[めん]キープ", secondaryreading: "がめんきーぷ", emoji: "💡", notes: "讓您專注學習不被打斷。" },
-            { unit: "教學", category: "sentence", primary: "大[だい]字[じ]版[はん]面[めん]", reading: "だいじはんめん", meaning: "漢字上的讀音清晰放大", secondary: "v6.0 バージョン", secondaryreading: "バージョンろくてんぜろ", emoji: "🔍", notes: "包含 PWA 穩定更新機制。" }
+            { unit: "教學", category: "sentence", primary: "自[じ]訂[てい]體[たい]驗[けん]", reading: "じていたいけん", meaning: "在偏好設定中可以開啟或關閉震動回饋", secondary: "震[しん]動[どう]設[せっ]定[てい]", secondaryreading: "しんどうせってい", emoji: "📳", notes: "這是 v6.1 新增的功能。" },
+            { unit: "教學", category: "sentence", primary: "深[しん]色[しょく]模[も]式[しき]", reading: "しんしょくもしき", meaning: "可手動選擇淺色、深色或隨系統變化", secondary: "テ[て]ー[ー]マ[ま]設[せっ]定[てい]", secondaryreading: "てーませってい", emoji: "🌙", notes: "適合在不同亮度環境下切換。" },
+            { unit: "教學", category: "sentence", primary: "自[じ]動[どう]播[は]放[ほう]", reading: "じどうほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "自[じ]動[動]巡[じゅん]回[かい]", secondaryreading: "じどうじゅんかい", emoji: "▶️", notes: "適合通勤或睡前複習。" },
+            { unit: "教學", category: "sentence", primary: "螢[えい]幕[まく]常[じょう]亮[りょう]", reading: "えいまくじょうりょう", meaning: "練習中螢幕不會自動變暗關閉", secondary: "畫[が]面[めん]キープ", secondaryreading: "がめんきーぷ", emoji: "💡", notes: "讓您專注學習不被打斷。" }
         ];
 
         // --- IndexedDB ---
@@ -166,7 +166,6 @@
             const wakeLockRef = useRef(null);
 
             const [openSections, setOpenSections] = useState({ pref: false, sync: false, voice: false });
-            const toggleSection = (key) => { vibrate(5); setOpenSections(prev => ({ ...prev, [key]: !prev[key] })); };
             
             const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_gas_v43') || '');
             const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('km_use_n_v43') ?? 'true'));
@@ -178,6 +177,16 @@
             const [cloudCourses, setCloudCourses] = useState(() => JSON.parse(localStorage.getItem('km_c_v43') || '{}'));
             const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('km_a_v43') || 'builtin');
 
+            // --- v6.1 新增：觸感與主題狀態 ---
+            const [useVibration, setUseVibration] = useState(() => JSON.parse(localStorage.getItem('km_vibrate_v61') ?? 'true'));
+            const [themePreference, setThemePreference] = useState(() => localStorage.getItem('km_theme_v61') || 'system');
+
+            const vibrate = (ms = 15) => { 
+                if (useVibration && navigator.vibrate) navigator.vibrate(ms); 
+            };
+
+            const toggleSection = (key) => { vibrate(5); setOpenSections(prev => ({ ...prev, [key]: !prev[key] })); };
+
             const audioCache = useRef({}); 
             const fetchingRef = useRef(new Set());
 
@@ -187,6 +196,22 @@
                 window.addEventListener('pwa_update_available', handler);
                 return () => window.removeEventListener('pwa_update_available', handler);
             }, []);
+
+            // --- v6.1 主題切換邏輯 ---
+            useEffect(() => {
+                const applyTheme = () => {
+                    const isDark = themePreference === 'dark' || (themePreference === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    if (isDark) document.documentElement.classList.add('dark-mode');
+                    else document.documentElement.classList.remove('dark-mode');
+                };
+                applyTheme();
+                if (themePreference === 'system') {
+                    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+                    const listener = () => applyTheme();
+                    mql.addEventListener('change', listener);
+                    return () => mql.removeEventListener('change', listener);
+                }
+            }, [themePreference]);
 
             useEffect(() => {
                 const requestWakeLock = async () => {
@@ -314,7 +339,7 @@
                     setTimeout(() => { setIsCheckingUpdate(false); if (!showUpdateToast) alert('當前已是最新版本！'); }, 1500); 
                 } catch (e) { 
                     setIsCheckingUpdate(false); 
-                    alert('檢查失敗，這可能是因為預覽環境限制或網路問題。');
+                    alert('檢查失敗');
                 }
             };
 
@@ -328,7 +353,9 @@
                 localStorage.setItem('km_speechrate_v43', JSON.stringify(speechRate));
                 localStorage.setItem('km_c_v43', JSON.stringify(cloudCourses));
                 localStorage.setItem('km_a_v43', activeCourseId);
-            }, [gasUrl, useNeural, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId]);
+                localStorage.setItem('km_vibrate_v61', JSON.stringify(useVibration));
+                localStorage.setItem('km_theme_v61', themePreference);
+            }, [gasUrl, useNeural, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId, useVibration, themePreference]);
 
             const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
             const themePrimary = practiceMode === 'random' ? 'amber' : 'indigo';
@@ -355,16 +382,15 @@
                         </div>
                     )}
 
-                    <header className="bg-white dark-mode-card border-b px-3 py-2 sticky top-0 z-30 flex justify-between items-center shrink-0 shadow-sm h-14">
+                    <header className="bg-white dark-mode-header border-b px-3 py-2 sticky top-0 z-30 flex justify-between items-center shrink-0 shadow-sm h-14">
                         <div className="flex flex-col text-left">
                             <div className="flex items-center gap-1.5">
                                 <h1 className={`text-sm md:text-base font-black text-${themePrimary}-600 leading-none`}>Kana Master</h1>
-                                <span className="text-[7px] font-black bg-slate-100 dark-mode-secondary text-slate-400 px-1 rounded leading-tight">{APP_VERSION}</span>
+                                <span className="text-[7px] font-black bg-slate-100 dark-mode-secondary text-slate-400 px-1 rounded leading-tight tracking-tighter">{APP_VERSION}</span>
                             </div>
                             <span className="text-[8px] text-slate-400 font-black uppercase mt-0.5 truncate max-w-[80px]">{activeCourseId === 'builtin' ? 'Guide' : activeCourseId}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                            {/* 修復回歸：模式切換鈕 */}
                             <div className="flex bg-slate-100 dark-mode-secondary p-1 rounded-xl gap-0.5 mr-0.5 shadow-inner">
                                 <button onClick={() => { setPracticeMode('order'); generatePracticeSet('order'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'order' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}><Icon name="list-ordered" size={15} /></button>
                                 <button onClick={() => { setPracticeMode('random'); generatePracticeSet('random'); }} className={`p-1.5 rounded-lg transition-all ${practiceMode === 'random' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}><Icon name="shuffle" size={15} /></button>
@@ -392,7 +418,7 @@
                                             <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                                 <div className="h-[20%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
                                                     <span className={`${isLargeFont ? 'text-7xl' : 'text-6xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
-                                                    <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-2.5 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={18}/></button>
+                                                    <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-4 right-4 bg-indigo-600 text-white p-2.5 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={18}/></button>
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-center px-6 py-2 text-center overflow-hidden">
                                                     <div className="flex-1 flex items-center justify-center w-full">
@@ -417,7 +443,7 @@
                                                     <div className="w-full text-left space-y-2 pt-1 text-xs">
                                                         {currentCard.notes && <div className={`${isLargeFont ? 'text-xs' : 'text-[10px]'} bg-slate-50 dark-mode-secondary p-3 rounded-2xl border border-slate-100 dark-mode-card text-slate-500 font-bold`}>{currentCard.notes}</div>}
                                                         <div className="bg-rose-50/30 p-2 rounded-xl border border-rose-100/20">
-                                                            <div className="flex justify-between items-center mb-0.5 text-[7px] font-black uppercase"><p className="text-rose-400 font-black">Hybrid Strategy</p><span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span></div>
+                                                            <div className="flex justify-between items-center mb-0.5 text-[7px] font-black uppercase"><p className="text-rose-400 font-black text-[8px]">Hybrid Strategy</p><span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span></div>
                                                             <p className="text-[8px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
                                                         </div>
                                                     </div>
@@ -425,7 +451,7 @@
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4 shrink-0 pb-[calc(var(--safe-bottom)+0.5rem)] pt-1">
-                                            <button onClick={() => { vibrate(10); if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white dark-mode-card dark-mode-text border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase tracking-widest">PREV</button>
+                                            <button onClick={() => { vibrate(10); if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white dark-mode-card dark-mode-text dark-mode-border border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase tracking-widest">PREV</button>
                                             <button onClick={() => { vibrate(10); if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest`}>NEXT</button>
                                         </div>
                                     </>
@@ -440,30 +466,54 @@
                                 <section className="bg-white dark-mode-card p-5 rounded-[2.5rem] shadow-lg space-y-4">
                                     <div className="flex justify-between items-center"><h2 className="text-sm font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="book-open" size={16} className="text-indigo-600" /> 學習範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={10} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">選擇課程</label>
+                                        <label className="text-[9px] font-black text-slate-400 dark-mode-text uppercase ml-1">選擇課程</label>
                                         <select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-xs font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 使用手冊與導覽</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select>
                                     </div>
-                                    {/* 練習模式設定 */}
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">練習模式</label>
+                                        <label className="text-[9px] font-black text-slate-400 dark-mode-text uppercase ml-1">練習模式</label>
                                         <div className="flex bg-slate-50 dark-mode-secondary p-1 rounded-xl gap-1 ring-1 ring-slate-100">
-                                            <button onClick={() => { setPracticeMode('order'); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${practiceMode === 'order' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>循序 (Order)</button>
-                                            <button onClick={() => { setPracticeMode('random'); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${practiceMode === 'random' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}>隨機 (Shuffle)</button>
+                                            <button onClick={() => { setPracticeMode('order'); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${practiceMode === 'order' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>循序 (Order)</button>
+                                            <button onClick={() => { setPracticeMode('random'); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${practiceMode === 'random' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}>隨機 (Shuffle)</button>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label>
-                                        <div className="grid grid-cols-2 gap-2">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-2.5 px-2 rounded-xl text-[10px] font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text border-slate-100'}`}>{u}</button>))}</div></div>
+                                        <label className="text-[9px] font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label>
+                                        <div className="grid grid-cols-2 gap-2">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-2.5 px-2 rounded-xl text-[10px] font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
                                 </section>
 
                                 <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
-                                    <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors"><div className="text-left"><h3 className="text-sm font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={16} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">{speechRate}x / {useNeural ? '高品質' : '標準'} / {isLargeFont ? '大字' : '標準字'}</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" /></button>
+                                    <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
+                                        <div className="text-left">
+                                            <h3 className="text-sm font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={16} className="text-amber-500" /> 偏好設定</h3>
+                                            <p className="text-[9px] text-slate-400 font-bold mt-0.5">
+                                                目前：{speechRate}x / {useNeural ? '高品質' : '標準'} / {isLargeFont ? '大字' : '標準字'} / {useVibration ? '有震動' : '無震動'} / {themePreference === 'system' ? '隨系統' : themePreference === 'dark' ? '深色' : '淺色'}
+                                            </p>
+                                        </div>
+                                        <Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
+                                    </button>
                                     {openSections.pref && (
                                         <div className="px-5 pb-6 space-y-4 animate-in slide-in-from-top-2">
                                             <div className="pt-2 space-y-3">
-                                                <div className="flex justify-between items-center"><span className="text-[11px] font-black text-slate-500 uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer" /></div>
+                                                <div className="flex justify-between items-center"><span className="text-[11px] font-black text-slate-500 dark-mode-text uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
+                                                
                                                 <label className="flex items-center justify-between cursor-pointer p-3 bg-slate-50 dark-mode-secondary rounded-xl"><div className="flex flex-col"><span className="text-xs font-bold text-slate-600 dark-mode-text text-left">啟用高品質神經發音</span><span className="text-[8px] text-slate-400 text-left uppercase">VOICEVOX / Gemini API</span></div><input type="checkbox" checked={useNeural} onChange={(e) => { vibrate(10); setUseNeural(e.target.checked); }} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
-                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50"><div className="flex flex-col"><span className="text-xs font-bold text-indigo-700 dark-mode-text text-left font-black text-[11px]">大字版面模式</span><span className="text-[8px] text-indigo-400 text-left uppercase">放大漢字上的假名與主文字</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(10); setIsLargeFont(e.target.checked); }} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                
+                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50"><div className="flex flex-col"><span className="text-xs font-bold text-indigo-700 dark-mode-text text-left font-black text-[11px]">大字版面模式</span><span className="text-[8px] text-indigo-400 text-left uppercase font-black">放大漢字讀音與主文字</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(10); setIsLargeFont(e.target.checked); }} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                
+                                                {/* v6.1 觸感開關 */}
+                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-slate-50 dark-mode-secondary rounded-xl"><div className="flex flex-col"><span className="text-xs font-bold text-slate-600 dark-mode-text text-left">啟用觸感回饋 (震動)</span><span className="text-[8px] text-slate-400 text-left uppercase">手機點擊時產生微震動</span></div><input type="checkbox" checked={useVibration} onChange={(e) => { setUseVibration(e.target.checked); if(e.target.checked) vibrate(20); }} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                
+                                                {/* v6.1 主題模式 */}
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] font-black text-slate-400 dark-mode-text uppercase ml-1">外觀主題</label>
+                                                    <div className="flex bg-slate-100 dark-mode-secondary p-1 rounded-xl gap-1">
+                                                        {['light', 'dark', 'system'].map(m => (
+                                                            <button key={m} onClick={() => { vibrate(5); setThemePreference(m); }} className={`flex-1 py-2 rounded-lg text-[10px] font-black transition-all ${themePreference === m ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>
+                                                                {m === 'light' ? '淺色' : m === 'dark' ? '深色' : '系統'}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -473,7 +523,7 @@
                                     <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors"><div className="text-left"><h3 className="text-sm font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={16} className="text-emerald-500" /> 連線與同步</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">{gasUrl ? '雲端已連線' : '尚未設定網址'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" /></button>
                                     {openSections.sync && (
                                         <div className="px-5 pb-6 space-y-4 animate-in slide-in-from-top-2">
-                                            <div className="pt-2 space-y-3"><input type="text" placeholder="貼上 GAS Web App URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-3 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-[10px] font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" /><button onClick={() => { vibrate(20); syncFromCloud(); }} disabled={!gasUrl || isSyncing} className={`w-full py-3 rounded-xl bg-slate-800 text-white font-black text-xs active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>{isSyncing ? '同步中...' : '從雲端同步課程清單'}</button><div className="pt-2 border-t border-slate-100"><button onClick={factoryReset} className="text-rose-400 text-[10px] font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors"><Icon name="trash-2" size={12} /> 重設應用程式 (Factory Reset)</button></div></div>
+                                            <div className="pt-2 space-y-3"><input type="text" placeholder="貼上 GAS Web App URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-3 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-[10px] font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" /><button onClick={() => { vibrate(20); syncFromCloud(); }} disabled={!gasUrl || isSyncing} className={`w-full py-3 rounded-xl bg-slate-800 text-white font-black text-xs active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>{isSyncing ? '同步中...' : '從雲端同步課程清單'}</button><div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-[10px] font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors"><Icon name="trash-2" size={12} /> 重設應用程式 (Factory Reset)</button></div></div>
                                         </div>
                                     )}
                                 </section>
