@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v5.3 - Large Font</title>
+    <title>Kana Master v5.5 - Compact UI</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -62,11 +62,27 @@
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 基礎 Ruby 設定 */
-        ruby { display: inline-flex; flex-direction: column-reverse; align-items: center; vertical-align: bottom; margin: 0 1px; line-height: 1.1; }
-        ruby rt { display: block; font-size: 0.45em; color: #6366f1; font-weight: 800; text-align: center; padding-bottom: 0.15em; width: 100%; line-height: 1; transition: font-size 0.3s ease; }
+        ruby { 
+            display: inline-flex; 
+            flex-direction: column-reverse; 
+            align-items: center; 
+            vertical-align: bottom; 
+            margin: 0 1px; 
+            line-height: 1.25;
+        }
+        ruby rt { 
+            display: block; 
+            font-size: 0.45em; 
+            color: #6366f1; 
+            font-weight: 800; 
+            text-align: center; 
+            padding-bottom: 0.1em; 
+            width: 100%; 
+            line-height: 1; 
+            transition: all 0.3s ease; 
+        }
         
-        /* 大字模式下的假名放大 */
+        .large-font-mode ruby { line-height: 1.45; }
         .large-font-mode ruby rt { font-size: 0.65em; padding-bottom: 0.05em; }
 
         .card-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1), 0 5px 15px -5px rgba(0, 0, 0, 0.04); }
@@ -85,8 +101,8 @@
         const MANUAL_LESSON = [
             { unit: "教學", category: "sentence", primary: "點[てん]選[せん]卡[か]片[へん]", reading: "てんせんかへん", meaning: "點擊卡片可翻面查看意義", secondary: "翻[はん]面[めん]測[そく]試[し]", secondaryreading: "はんめんそくし", emoji: "👇", notes: "這是最基礎的操作。" },
             { unit: "教學", category: "sentence", primary: "聆[れい]聽[ちょう]發[はつ]音[おん]", reading: "れいちょうはつおん", meaning: "點選喇叭圖示聽高品質發音", secondary: "聽[ちょう]解[かい]練[れん]習[しゅう]", secondaryreading: "ちょうかいれんしゅう", emoji: "🔊", notes: "建議在設定中啟用神經發音。" },
-            { unit: "教學", category: "sentence", primary: "同[どう]步[ほ]課[か]程[てい]", reading: "どうほかてい", meaning: "前往設定貼上 GAS URL 同步雲端內容", secondary: "雲[うん]端[たん]同[どう]步[ほ]", secondaryreading: "うんたん過長", emoji: "☁️", notes: "第一次使用請先完成同步。" },
-            { unit: "教學", category: "sentence", primary: "大[だい]字[じ]版[はん]面[めん]", reading: "だいじはんめん", meaning: "覺得假名太小？在設定中開啟大字版面", secondary: "老[ろう]眼[がん]友[ゆう]善[ぜん]", secondaryreading: "ろうがんゆうぜん", emoji: "🔍", notes: "特別針對漢字上方讀音進行放大。" }
+            { unit: "教學", category: "sentence", primary: "同[どう]步[ほ]課[か]程[てい]", reading: "どうほかてい", meaning: "前往設定貼上 GAS URL 同步雲端內容", secondary: "雲[うん]端[たん]同[どう]步[ほ]機[き]制[せい]", secondaryreading: "過長內容測試測試測試測試", emoji: "☁️", notes: "第一次使用請先完成同步。" },
+            { unit: "教學", category: "sentence", primary: "壓[あつ]縮[しゅく]版[はん]面[めん]", reading: "あつしゅくはんめん", meaning: "進度條與單元名稱合併，節省空間", secondary: "更[さら]にスリムに", secondaryreading: "さらにすりむに", emoji: "📏", notes: "這是 v5.5 針對手機端做的優化。" }
         ];
 
         // --- IndexedDB ---
@@ -159,7 +175,6 @@
             const [openSections, setOpenSections] = useState({ pref: false, sync: false, voice: false });
             const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
             
-            // 資料儲存設定 (新增 km_large_font_v53)
             const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_gas_v43') || '');
             const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('km_use_n_v43') ?? 'true'));
             const [isLargeFont, setIsLargeFont] = useState(() => JSON.parse(localStorage.getItem('km_large_font_v53') ?? 'false'));
@@ -329,53 +344,64 @@
                             <div className="flex-1 flex flex-col space-y-4 animate-in fade-in duration-500">
                                 {cards.length > 0 ? (
                                     <>
-                                        <div className="shrink-0 text-left px-1">
-                                            <div className="flex justify-between items-end mb-1 text-[10px] font-black text-slate-400 uppercase tracking-wider"><span>{currentCard.unit}</span><span>{currentIndex + 1} / {cards.length}</span></div>
-                                            <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden shadow-inner"><div className={`bg-${themePrimary}-500 h-full transition-all duration-300`} style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}></div></div>
+                                        {/* 優化點：進度條與資訊合併為一列 */}
+                                        <div className="shrink-0 flex items-center gap-3 px-1">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap leading-none shrink-0">
+                                                {currentCard.unit}
+                                            </span>
+                                            <div className="flex-1 bg-slate-200 h-1 rounded-full overflow-hidden shadow-inner relative">
+                                                <div 
+                                                    className={`bg-${themePrimary}-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(79,70,229,0.3)]`} 
+                                                    style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
+                                                ></div>
+                                            </div>
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap leading-none shrink-0">
+                                                {currentIndex + 1} / {cards.length}
+                                            </span>
                                         </div>
                                         
                                         <div className={`relative flex-1 min-h-[350px] max-h-[550px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                            {/* 正面卡片 */}
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
-                                                <div className="h-1/3 flex items-center justify-center bg-indigo-50/20 relative shrink-0">
-                                                    <span className={`${isLargeFont ? 'text-8xl' : 'text-7xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
-                                                    <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-3 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={20}/></button>
+                                                <div className="h-[20%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
+                                                    <span className={`${isLargeFont ? 'text-7xl' : 'text-6xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
+                                                    <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-2.5 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={18}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                                                    <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-8xl' : 'text-7xl')} font-black text-slate-800 transition-all`} />
+                                                <div className="flex-1 flex flex-col items-center justify-center px-6 py-2 text-center overflow-hidden">
+                                                    <div className="flex-1 flex items-center justify-center w-full">
+                                                        <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-4xl' : 'text-3xl') : (isLargeFont ? 'text-7xl' : 'text-6xl')} font-black text-slate-800 transition-all break-words`} />
+                                                    </div>
                                                     {currentCard.secondary && (
-                                                        <div className="mt-6 bg-indigo-50/50 px-5 py-4 rounded-[1.5rem] border border-indigo-100/30">
-                                                            <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic`} />
+                                                        <div className="mt-2 mb-4 bg-indigo-50/50 px-5 py-3 rounded-[1.5rem] border border-indigo-100/30 w-full min-h-[4rem] flex items-center justify-center">
+                                                            <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-2xl' : 'text-xl'} text-indigo-600 font-bold italic leading-tight`} />
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            {/* 背面卡片 */}
                                             <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 ${isFlipped ? 'flex' : 'hidden'}`}>
-                                                <div className="h-16 flex items-center justify-between px-6 bg-slate-50 border-b shrink-0">
-                                                    <div className="flex items-center gap-2"><span className="text-2xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
-                                                    <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={20}/></button>
+                                                <div className="h-14 flex items-center justify-between px-6 bg-slate-50 border-b shrink-0">
+                                                    <div className="flex items-center gap-2"><span className="text-xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
+                                                    <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={18}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 overflow-y-auto no-scrollbar">
-                                                    <div className="space-y-1"><h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center w-full">翻譯</p></div>
-                                                    {currentCard.secondary && <div className="bg-indigo-50/40 p-5 rounded-[2rem] w-full"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} text-slate-700 font-bold`} /></div>}
-                                                    <div className="w-full text-left space-y-2 pt-1">
+                                                <div className="flex-1 flex flex-col items-center justify-center p-5 text-center space-y-3 overflow-y-auto no-scrollbar">
+                                                    <div className="space-y-0.5"><h3 className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center w-full">翻譯</p></div>
+                                                    {currentCard.secondary && <div className="bg-indigo-50/40 p-4 rounded-[1.5rem] w-full min-h-[5rem] flex items-center justify-center"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 font-bold leading-snug`} /></div>}
+                                                    <div className="w-full text-left space-y-2 pt-1 text-xs">
                                                         {currentCard.notes && <div className={`${isLargeFont ? 'text-xs' : 'text-[10px]'} bg-slate-50 p-3 rounded-2xl border border-slate-100 text-slate-500 leading-relaxed font-bold`}>{currentCard.notes}</div>}
                                                         <div className="bg-rose-50/30 p-2 rounded-xl border border-rose-100/20">
                                                             <div className="flex justify-between items-center mb-0.5 text-[7px] font-black uppercase">
-                                                                <p className="text-rose-400">Hybrid Strategy</p>
-                                                                <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span>
+                                                                <p className="text-rose-400 font-black">Hybrid Strategy</p>
+                                                                <span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75 uppercase tracking-tighter">{ttsStatus}</span>
                                                             </div>
-                                                            <p className="text-[8px] font-mono text-rose-500/50 truncate">{currentCard.reading} {currentCard.secondaryreading}</p>
+                                                            <p className="text-[8px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4 shrink-0 pb-[var(--safe-bottom)]">
-                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase">PREV</button>
-                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs uppercase`}>NEXT</button>
+                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase tracking-widest">PREV</button>
+                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs uppercase tracking-widest`}>NEXT</button>
                                         </div>
                                     </>
                                 ) : (
@@ -398,7 +424,7 @@
                                     </div>
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
                                     <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
                                         <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="sliders" size={16} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">目前：{speechRate}x / {useNeural ? '高品質' : '標準'} / {isLargeFont ? '大字' : '標準字'}</p></div>
                                         <Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
@@ -408,13 +434,13 @@
                                             <div className="pt-2 space-y-3">
                                                 <div className="flex justify-between items-center"><span className="text-[11px] font-black text-slate-500 uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer" /></div>
                                                 <label className="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-xl"><div className="flex flex-col"><span className="text-xs font-bold text-slate-600 text-left">啟用高品質神經發音</span><span className="text-[8px] text-slate-400 text-left uppercase">VOICEVOX / Gemini API</span></div><input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
-                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50"><div className="flex flex-col"><span className="text-xs font-bold text-indigo-700 text-left font-black">大字版面模式</span><span className="text-[8px] text-indigo-400 text-left uppercase">放大漢字上的假名與主文字</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => setIsLargeFont(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50"><div className="flex flex-col"><span className="text-xs font-bold text-indigo-700 text-left font-black text-[11px]">大字版面模式</span><span className="text-[8px] text-indigo-400 text-left uppercase">放大漢字上的假名與主文字</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => setIsLargeFont(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
                                             </div>
                                         </div>
                                     )}
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
                                     <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
                                         <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="refresh-cw" size={16} className="text-emerald-500" /> 連線與同步</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">狀態：{gasUrl ? '雲端已連線' : '尚未設定網址'}</p></div>
                                         <Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
@@ -430,7 +456,7 @@
                                     )}
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
                                     <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
                                         <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="database" size={16} className="text-rose-500" /> 語音資源管理</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">離線快取：{localCacheCount} 個檔案</p></div>
                                         <Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
@@ -453,7 +479,7 @@
 
                         {view === 'settings' && (
                             <div className="absolute bottom-8 left-4 right-4 flex justify-center z-40">
-                                <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-4 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={18} /><span className="text-xs font-black uppercase tracking-widest font-black">套用設定並開始</span></button>
+                                <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-4 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={18} /><span className="text-xs font-black uppercase tracking-widest font-black text-xs">套用設定並開始</span></button>
                             </div>
                         )}
                     </main>
