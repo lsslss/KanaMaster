@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v5.2 - Master Guide</title>
+    <title>Kana Master v5.3 - Large Font</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -61,8 +61,14 @@
         @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* 基礎 Ruby 設定 */
         ruby { display: inline-flex; flex-direction: column-reverse; align-items: center; vertical-align: bottom; margin: 0 1px; line-height: 1.1; }
-        ruby rt { display: block; font-size: 0.45em; color: #6366f1; font-weight: 800; text-align: center; padding-bottom: 0.15em; width: 100%; line-height: 1; }
+        ruby rt { display: block; font-size: 0.45em; color: #6366f1; font-weight: 800; text-align: center; padding-bottom: 0.15em; width: 100%; line-height: 1; transition: font-size 0.3s ease; }
+        
+        /* 大字模式下的假名放大 */
+        .large-font-mode ruby rt { font-size: 0.65em; padding-bottom: 0.05em; }
+
         .card-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1), 0 5px 15px -5px rgba(0, 0, 0, 0.04); }
         :root { --safe-bottom: env(safe-area-inset-bottom, 20px); }
         body { background-color: #f8fafc; }
@@ -75,15 +81,15 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- 1. 使用手冊內容 (極簡化預設) ---
+        // --- 使用手冊內容 ---
         const MANUAL_LESSON = [
             { unit: "教學", category: "sentence", primary: "點[てん]選[せん]卡[か]片[へん]", reading: "てんせんかへん", meaning: "點擊卡片可翻面查看意義", secondary: "翻[はん]面[めん]測[そく]試[し]", secondaryreading: "はんめんそくし", emoji: "👇", notes: "這是最基礎的操作。" },
             { unit: "教學", category: "sentence", primary: "聆[れい]聽[ちょう]發[はつ]音[おん]", reading: "れいちょうはつおん", meaning: "點選喇叭圖示聽高品質發音", secondary: "聽[ちょう]解[かい]練[れん]習[しゅう]", secondaryreading: "ちょうかいれんしゅう", emoji: "🔊", notes: "建議在設定中啟用神經發音。" },
-            { unit: "教學", category: "sentence", primary: "同[どう]步[ほ]課[か]程[てい]", reading: "どうほかてい", meaning: "前往設定貼上 GAS URL 同步雲端內容", secondary: "雲[うん]端[たん]同[どう]步[ほ]", secondaryreading: "うんたんどうほ", emoji: "☁️", notes: "第一次使用請先完成同步。" },
-            { unit: "教學", category: "sentence", primary: "離[り]線[せん]學[がく]習[しゅう]", reading: "りせんがくしゅう", meaning: "下載語音包後即可完全離線練習", secondary: "快[かい]取[しゅ]音[おん]訊[じん]", secondaryreading: "かいしゅおんじん", emoji: "📱", notes: "在設定中的資源管理可以一鍵下載。" }
+            { unit: "教學", category: "sentence", primary: "同[どう]步[ほ]課[か]程[てい]", reading: "どうほかてい", meaning: "前往設定貼上 GAS URL 同步雲端內容", secondary: "雲[うん]端[たん]同[どう]步[ほ]", secondaryreading: "うんたん過長", emoji: "☁️", notes: "第一次使用請先完成同步。" },
+            { unit: "教學", category: "sentence", primary: "大[だい]字[じ]版[はん]面[めん]", reading: "だいじはんめん", meaning: "覺得假名太小？在設定中開啟大字版面", secondary: "老[ろう]眼[がん]友[ゆう]善[ぜん]", secondaryreading: "ろうがんゆうぜん", emoji: "🔍", notes: "特別針對漢字上方讀音進行放大。" }
         ];
 
-        // --- 2. IndexedDB ---
+        // --- IndexedDB ---
         const DB_NAME = "KM_Audio_v40";
         const STORE_NAME = "local_audio";
         const initDB = () => new Promise((resolve) => {
@@ -153,8 +159,10 @@
             const [openSections, setOpenSections] = useState({ pref: false, sync: false, voice: false });
             const toggleSection = (key) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
             
+            // 資料儲存設定 (新增 km_large_font_v53)
             const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_gas_v43') || '');
             const [useNeural, setUseNeural] = useState(() => JSON.parse(localStorage.getItem('km_use_n_v43') ?? 'true'));
+            const [isLargeFont, setIsLargeFont] = useState(() => JSON.parse(localStorage.getItem('km_large_font_v53') ?? 'false'));
             const [selectedUnits, setSelectedUnits] = useState(() => JSON.parse(localStorage.getItem('km_u_v43') || '[]'));
             const [practiceMode, setPracticeMode] = useState(() => localStorage.getItem('km_mode_v43') || 'order');
             const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('km_autospeak_v43') ?? 'false'));
@@ -259,13 +267,8 @@
                 if (confirm('確定要清空手機內的語音檔嗎？')) { await deleteStore(); audioCache.current = {}; countLocalItems().then(setLocalCacheCount); }
             };
 
-            // 新增：重設 App
             const factoryReset = async () => {
-                if (confirm('⚠️ 警告：確定要重設所有資料嗎？這將清除課程清單、GAS URL 與所有設定。')) {
-                    localStorage.clear();
-                    await deleteStore();
-                    window.location.reload();
-                }
+                if (confirm('⚠️ 警告：確定要重設所有資料嗎？')) { localStorage.clear(); await deleteStore(); window.location.reload(); }
             };
 
             const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
@@ -273,13 +276,14 @@
             useEffect(() => {
                 localStorage.setItem('km_gas_v43', gasUrl);
                 localStorage.setItem('km_use_n_v43', JSON.stringify(useNeural));
+                localStorage.setItem('km_large_font_v53', JSON.stringify(isLargeFont));
                 localStorage.setItem('km_u_v43', JSON.stringify(selectedUnits));
                 localStorage.setItem('km_mode_v43', practiceMode);
                 localStorage.setItem('km_autospeak_v43', JSON.stringify(autoSpeak));
                 localStorage.setItem('km_speechrate_v43', JSON.stringify(speechRate));
                 localStorage.setItem('km_c_v43', JSON.stringify(cloudCourses));
                 localStorage.setItem('km_a_v43', activeCourseId);
-            }, [gasUrl, useNeural, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId]);
+            }, [gasUrl, useNeural, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId]);
 
             useEffect(() => {
                 if (autoSpeak && cards.length > 0 && view === 'practice' && !isFlipped && currentCard.reading) {
@@ -296,19 +300,15 @@
                     const data = await res.json();
                     setCloudCourses(data);
                     const ks = Object.keys(data);
-                    if (ks.length > 0) {
-                        setActiveCourseId(ks[0]);
-                        setSelectedUnits([]);
-                        alert('同步成功！已為您切換至雲端第一門課程。');
-                    }
-                } catch(e) { alert('同步失敗，請檢查 URL 是否正確或網路是否通暢。'); }
+                    if (ks.length > 0) { setActiveCourseId(ks[0]); setSelectedUnits([]); alert('同步成功！'); }
+                } catch(e) { alert('同步失敗'); }
                 finally { setIsSyncing(false); }
             };
 
             const themePrimary = practiceMode === 'random' ? 'amber' : 'indigo';
 
             return (
-                <div className="w-full max-w-md h-full bg-slate-50 flex flex-col overflow-hidden relative md:shadow-2xl md:border-x border-slate-200">
+                <div className={`w-full max-w-md h-full bg-slate-50 flex flex-col overflow-hidden relative md:shadow-2xl md:border-x border-slate-200 ${isLargeFont ? 'large-font-mode' : ''}`}>
                     <header className="bg-white border-b px-4 py-2 sticky top-0 z-30 flex justify-between items-center shrink-0 shadow-sm h-14">
                         <div className="flex flex-col text-left">
                             <h1 className={`text-base font-black text-${themePrimary}-600 leading-none`}>Kana Master</h1>
@@ -329,35 +329,39 @@
                             <div className="flex-1 flex flex-col space-y-4 animate-in fade-in duration-500">
                                 {cards.length > 0 ? (
                                     <>
-                                        <div className="shrink-0 text-left">
-                                            <div className="flex justify-between items-end mb-1 px-1 text-[10px] font-black text-slate-400 uppercase"><span>{currentCard.unit}</span><span>{currentIndex + 1} / {cards.length}</span></div>
+                                        <div className="shrink-0 text-left px-1">
+                                            <div className="flex justify-between items-end mb-1 text-[10px] font-black text-slate-400 uppercase tracking-wider"><span>{currentCard.unit}</span><span>{currentIndex + 1} / {cards.length}</span></div>
                                             <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden shadow-inner"><div className={`bg-${themePrimary}-500 h-full transition-all duration-300`} style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}></div></div>
                                         </div>
-                                        <div className={`relative flex-1 min-h-[300px] max-h-[500px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
-                                            <div className={`absolute inset-0 bg-white rounded-[2rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
+                                        
+                                        <div className={`relative flex-1 min-h-[350px] max-h-[550px] w-full perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => setIsFlipped(!isFlipped)}>
+                                            {/* 正面卡片 */}
+                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                                 <div className="h-1/3 flex items-center justify-center bg-indigo-50/20 relative shrink-0">
-                                                    <span className="text-7xl animate-bounce-slow">{currentCard.emoji}</span>
+                                                    <span className={`${isLargeFont ? 'text-8xl' : 'text-7xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className={`absolute top-4 right-4 bg-${themePrimary}-600 text-white p-3 rounded-full shadow-lg active:scale-90`}><Icon name="volume-2" size={20}/></button>
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                                                    <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? 'text-4xl' : 'text-7xl'} font-black text-slate-800`} />
+                                                    <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-8xl' : 'text-7xl')} font-black text-slate-800 transition-all`} />
                                                     {currentCard.secondary && (
                                                         <div className="mt-6 bg-indigo-50/50 px-5 py-4 rounded-[1.5rem] border border-indigo-100/30">
-                                                            <RubyText text={currentCard.secondary} className="text-indigo-600 font-bold text-2xl italic" />
+                                                            <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic`} />
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className={`absolute inset-0 bg-white rounded-[2rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 ${isFlipped ? 'flex' : 'hidden'}`}>
+
+                                            {/* 背面卡片 */}
+                                            <div className={`absolute inset-0 bg-white rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 ${isFlipped ? 'flex' : 'hidden'}`}>
                                                 <div className="h-16 flex items-center justify-between px-6 bg-slate-50 border-b shrink-0">
                                                     <div className="flex items-center gap-2"><span className="text-2xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
                                                     <button onClick={(e) => { e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 overflow-y-auto no-scrollbar">
-                                                    <div className="space-y-1"><h3 className="text-4xl font-black text-indigo-600 leading-tight">{currentCard.meaning}</h3><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center w-full">翻譯</p></div>
-                                                    {currentCard.secondary && <div className="bg-indigo-50/40 p-5 rounded-[2rem] w-full"><RubyText text={currentCard.secondary} className="text-slate-700 font-bold text-3xl" /></div>}
+                                                    <div className="space-y-1"><h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest text-center w-full">翻譯</p></div>
+                                                    {currentCard.secondary && <div className="bg-indigo-50/40 p-5 rounded-[2rem] w-full"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} text-slate-700 font-bold`} /></div>}
                                                     <div className="w-full text-left space-y-2 pt-1">
-                                                        {currentCard.notes && <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-[10px] text-slate-500 leading-relaxed font-bold">{currentCard.notes}</div>}
+                                                        {currentCard.notes && <div className={`${isLargeFont ? 'text-xs' : 'text-[10px]'} bg-slate-50 p-3 rounded-2xl border border-slate-100 text-slate-500 leading-relaxed font-bold`}>{currentCard.notes}</div>}
                                                         <div className="bg-rose-50/30 p-2 rounded-xl border border-rose-100/20">
                                                             <div className="flex justify-between items-center mb-0.5 text-[7px] font-black uppercase">
                                                                 <p className="text-rose-400">Hybrid Strategy</p>
@@ -370,57 +374,47 @@
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-4 shrink-0 pb-[var(--safe-bottom)]">
-                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs">PREV</button>
-                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs`}>NEXT</button>
+                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white border py-3 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-xs uppercase">PREV</button>
+                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-3 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-xs uppercase`}>NEXT</button>
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4">
-                                        <Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p>
-                                        <button onClick={() => setView('settings')} className="bg-slate-200 text-slate-500 px-6 py-2 rounded-full text-xs uppercase text-xs">前往設定</button>
-                                    </div>
+                                    <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4 text-center"><Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p><button onClick={() => setView('settings')} className="bg-slate-200 text-slate-500 px-6 py-2 rounded-full text-xs uppercase font-black">前往設定</button></div>
                                 )}
                             </div>
                         )}
 
                         {view === 'settings' && (
                             <div className="space-y-4 text-left animate-in slide-in-from-bottom-4 duration-500 pb-28">
-                                <section className="bg-white p-5 rounded-[2rem] shadow-lg space-y-4">
+                                <section className="bg-white p-5 rounded-[2.5rem] shadow-lg space-y-4">
                                     <div className="flex justify-between items-center"><h2 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2"><Icon name="book-open" size={16} className="text-indigo-600" /> 學習範圍</h2><span className="text-[10px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Main</span></div>
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">選擇課程</label>
-                                        <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500">
-                                            {/* 優先顯示雲端課程，最後才顯示手冊 */}
-                                            {Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}
-                                            <option value="builtin">💡 使用手冊與導覽</option>
-                                        </select>
+                                        <select value={activeCourseId} onChange={(e) => { setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3 bg-slate-50 rounded-xl text-xs font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 使用手冊與導覽</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select>
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[9px] font-black text-slate-400 uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {availableUnits.map(u => (
-                                                <button key={u} onClick={() => setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u])} className={`py-2.5 px-2 rounded-xl text-[10px] font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-400 border-slate-100'}`}>{u}</button>
-                                            ))}
-                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">{availableUnits.map(u => (<button key={u} onClick={() => setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u])} className={`py-2.5 px-2 rounded-xl text-[10px] font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-400 border-slate-100'}`}>{u}</button>))}</div>
                                     </div>
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
                                     <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
-                                        <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="sliders" size={16} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">目前：{speechRate}x / {useNeural ? '高品質' : '標準'}</p></div>
+                                        <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="sliders" size={16} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">目前：{speechRate}x / {useNeural ? '高品質' : '標準'} / {isLargeFont ? '大字' : '標準字'}</p></div>
                                         <Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
                                     </button>
                                     {openSections.pref && (
                                         <div className="px-5 pb-6 space-y-4 animate-in slide-in-from-top-2">
                                             <div className="pt-2 space-y-3">
                                                 <div className="flex justify-between items-center"><span className="text-[11px] font-black text-slate-500 uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1 bg-slate-100 rounded-lg appearance-none cursor-pointer" /></div>
-                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-xl"><div className="flex flex-col"><span className="text-xs font-bold text-slate-600">啟用高品質神經發音</span><span className="text-[8px] text-slate-400">VOICEVOX / Gemini API</span></div><input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-slate-50 rounded-xl"><div className="flex flex-col"><span className="text-xs font-bold text-slate-600 text-left">啟用高品質神經發音</span><span className="text-[8px] text-slate-400 text-left uppercase">VOICEVOX / Gemini API</span></div><input type="checkbox" checked={useNeural} onChange={(e) => setUseNeural(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
+                                                <label className="flex items-center justify-between cursor-pointer p-3 bg-indigo-50/50 rounded-xl border border-indigo-100/50"><div className="flex flex-col"><span className="text-xs font-bold text-indigo-700 text-left font-black">大字版面模式</span><span className="text-[8px] text-indigo-400 text-left uppercase">放大漢字上的假名與主文字</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => setIsLargeFont(e.target.checked)} className="w-5 h-5 rounded-md accent-indigo-600" /></label>
                                             </div>
                                         </div>
                                     )}
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
                                     <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
                                         <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="refresh-cw" size={16} className="text-emerald-500" /> 連線與同步</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">狀態：{gasUrl ? '雲端已連線' : '尚未設定網址'}</p></div>
                                         <Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
@@ -430,15 +424,13 @@
                                             <div className="pt-2 space-y-3">
                                                 <input type="text" placeholder="貼上 GAS Web App URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-3 bg-slate-50 rounded-xl text-[10px] font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
                                                 <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-3 rounded-xl bg-slate-800 text-white font-black text-xs active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>{isSyncing ? '同步中...' : '從雲端同步課程清單'}</button>
-                                                <div className="pt-2 border-t border-slate-100">
-                                                    <button onClick={factoryReset} className="text-rose-400 text-[10px] font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors"><Icon name="trash-2" size={12} /> 重設應用程式 (Factory Reset)</button>
-                                                </div>
+                                                <div className="pt-2 border-t border-slate-100"><button onClick={factoryReset} className="text-rose-400 text-[10px] font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors"><Icon name="trash-2" size={12} /> 重設應用程式 (Factory Reset)</button></div>
                                             </div>
                                         </div>
                                     )}
                                 </section>
 
-                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all">
+                                <section className="bg-white rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50">
                                     <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors">
                                         <div className="text-left"><h3 className="text-sm font-black text-slate-700 flex items-center gap-2"><Icon name="database" size={16} className="text-rose-500" /> 語音資源管理</h3><p className="text-[10px] text-slate-400 font-bold mt-0.5">離線快取：{localCacheCount} 個檔案</p></div>
                                         <Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={18} className="text-slate-300" />
@@ -461,7 +453,7 @@
 
                         {view === 'settings' && (
                             <div className="absolute bottom-8 left-4 right-4 flex justify-center z-40">
-                                <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-4 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={18} /><span className="text-xs font-black uppercase tracking-widest">套用並開始</span></button>
+                                <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-4 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={18} /><span className="text-xs font-black uppercase tracking-widest font-black">套用設定並開始</span></button>
                             </div>
                         )}
                     </main>
