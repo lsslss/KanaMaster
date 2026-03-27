@@ -3,344 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kana Master - 語音管理 v4.6</title>
+    <title>KanaMaster Manager v2.0 - MP3 Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- 引入 lamejs 進行前端 MP3 轉碼 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.all.min.js"></script>
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .log-enter { animation: slideIn 0.3s ease-out forwards; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
-        .cooldown-mode { animation: pulse-orange 2s ease-in-out infinite; }
-        @keyframes pulse-orange { 0%, 100% { border-color: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.2); } 50% { border-color: #d97706; box-shadow: 0 0 15px rgba(217,119,6,0.4); } }
-        .voicevox-glow { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
-        .file-protocol-warning { animation: shake 0.5s ease-in-out; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .log-container::-webkit-scrollbar { width: 6px; }
+        .log-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .recording-pulse { animation: pulse-slow 2s infinite; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
-    <div id="root"></div>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <div class="max-w-4xl mx-auto p-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div>
+                <h1 class="text-2xl font-black text-indigo-600 flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white p-1.5 rounded-lg">KM</span> 
+                    Manager <span class="text-slate-400 text-sm font-bold">v2.0</span>
+                </h1>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">MP3 Audio Encoding Engine</p>
+            </div>
+            <div id="statusTag" class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-tighter">
+                Ready to Encode
+            </div>
+        </header>
 
-        const Icon = ({ name, size = 20, className = "" }) => {
-            useEffect(() => { if (window.lucide) lucide.createIcons(); }, [name]);
-            return (
-                <span className={`inline-flex items-center justify-center shrink-0 ${className}`} style={{ width: size, height: size }}>
-                    <i data-lucide={name} style={{ width: size, height: size }}></i>
-                </span>
-            );
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Column: Config -->
+            <div class="md:col-span-1 space-y-6">
+                <section class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                    <h2 class="text-xs font-black text-slate-400 uppercase border-b pb-2">連線設定</h2>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 block mb-1">GAS Web App URL</label>
+                        <input type="text" id="gasUrl" class="w-full p-2.5 bg-slate-50 border-none rounded-xl text-xs font-mono outline-none ring-1 ring-slate-100 focus:ring-indigo-500" placeholder="https://script.google.com/macros/s/...">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 block mb-1">Voicevox 地址 (本地)</label>
+                        <input type="text" id="vvUrl" class="w-full p-2.5 bg-slate-50 border-none rounded-xl text-xs font-mono outline-none ring-1 ring-slate-100 focus:ring-indigo-500" value="http://127.0.0.1:50021">
+                    </div>
+                    <div class="pt-2">
+                        <button id="saveConfig" class="w-full py-3 bg-slate-800 text-white rounded-xl text-xs font-black hover:bg-slate-700 transition-all">儲存設定</button>
+                    </div>
+                </section>
+
+                <section class="bg-indigo-600 p-6 rounded-3xl shadow-lg text-white space-y-4">
+                    <h2 class="text-xs font-black text-indigo-200 uppercase border-b border-indigo-500 pb-2">MP3 遷移工具</h2>
+                    <p class="text-[10px] text-indigo-100 leading-relaxed">此工具會從舊資料夾讀取 WAV，轉碼為 MP3 後存入新資料夾。</p>
+                    <button id="migrateBtn" class="w-full py-4 bg-white text-indigo-600 rounded-2xl text-sm font-black shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4"></i> 開始資料遷移
+                    </button>
+                    <div id="migrationProgress" class="hidden">
+                        <div class="h-1.5 bg-indigo-800 rounded-full overflow-hidden">
+                            <div id="migrateBar" class="h-full bg-emerald-400 w-0 transition-all"></div>
+                        </div>
+                        <p id="migrateStatus" class="text-[9px] mt-2 text-center font-bold">準備中...</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Operations -->
+            <div class="md:col-span-2 space-y-6">
+                <section class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col h-[500px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xs font-black text-slate-400 uppercase">執行日誌 (Encoding Log)</h2>
+                        <button id="clearLog" class="text-[10px] font-bold text-rose-400 uppercase hover:text-rose-600">清除</button>
+                    </div>
+                    <div id="logArea" class="log-container flex-1 bg-slate-900 rounded-2xl p-4 font-mono text-[11px] text-emerald-400 overflow-y-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+> System initialized. 
+> lamejs loaded. Ready for MP3 encoding.
+> Awaiting operations...
+                    </div>
+                </section>
+
+                <section class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                    <h2 class="text-xs font-black text-slate-400 uppercase mb-4">手動補完作業</h2>
+                    <div class="flex gap-4">
+                        <button id="syncManual" class="flex-1 py-4 bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black hover:bg-indigo-100 transition-all border border-indigo-100 flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-ccw" class="w-4 h-4"></i> 掃描並補齊 MP3 缺口
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createIcons, RefreshCcw, Zap, Save, CheckCircle2 } from 'https://unpkg.com/lucide@latest?module';
+        createIcons({ icons: { RefreshCcw, Zap, Save, CheckCircle2 } });
+
+        const dom = {
+            gasUrl: document.getElementById('gasUrl'),
+            vvUrl: document.getElementById('vvUrl'),
+            logArea: document.getElementById('logArea'),
+            migrateBtn: document.getElementById('migrateBtn'),
+            migrateBar: document.getElementById('migrateBar'),
+            migrateStatus: document.getElementById('migrateStatus'),
+            migrationProgress: document.getElementById('migrationProgress'),
+            statusTag: document.getElementById('statusTag')
         };
 
-        function App() {
-            const [gasUrl, setGasUrl] = useState(() => localStorage.getItem('km_mgr_url') || '');
-            const [apiKey, setApiKey] = useState(() => localStorage.getItem('km_mgr_key') || '');
-            const [ttsEngine, setTtsEngine] = useState(() => localStorage.getItem('km_mgr_engine') || 'voicevox');
-            const [vvSpeaker, setVvSpeaker] = useState(() => localStorage.getItem('km_mgr_vv_id') || '8');
-            const [vvHost, setVvHost] = useState(() => localStorage.getItem('km_mgr_vv_host') || '127.0.0.1');
-            
-            const [status, setStatus] = useState('Standby');
-            const [logs, setLogs] = useState([]);
-            const [itemsToProcess, setItemsToProcess] = useState([]);
-            const [isWorking, setIsWorking] = useState(false);
-            const [progress, setProgress] = useState({ current: 0, total: 0 });
-            const [countdown, setCountdown] = useState(0);
-            const [isFileProtocol, setIsFileProtocol] = useState(false);
-            
-            const stopRef = useRef(false);
+        // --- 初始化設定 ---
+        dom.gasUrl.value = localStorage.getItem('km_manager_gas') || '';
+        dom.vvUrl.value = localStorage.getItem('km_manager_vv') || 'http://127.0.0.1:50021';
 
-            useEffect(() => {
-                if (window.location.protocol === 'file:') {
-                    setIsFileProtocol(true);
-                }
-            }, []);
+        document.getElementById('saveConfig').onclick = () => {
+            localStorage.setItem('km_manager_gas', dom.gasUrl.value);
+            localStorage.setItem('km_manager_vv', dom.vvUrl.value);
+            log('Settings saved to local storage.', 'indigo');
+        };
 
-            const addLog = (msg, type = 'info') => {
-                const id = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                setLogs(prev => [{ id, msg, type, time: new Date() }, ...prev].slice(0, 100));
-            };
-
-            const smartSleep = async (ms) => {
-                const start = Date.now();
-                while (Date.now() - start < ms) {
-                    if (stopRef.current) return true;
-                    const remaining = Math.max(0, Math.ceil((ms - (Date.now() - start)) / 1000));
-                    setCountdown(remaining);
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                setCountdown(0);
-                return false;
-            };
-
-            const checkVoicevoxStatus = async () => {
-                const baseUrl = `http://${vvHost}:50021`;
-                addLog(`正在檢測 VOICEVOX (${vvHost})...`, "dim");
-                try {
-                    // 移除 mode: 'cors' 嘗試使用更寬鬆的請求
-                    const res = await fetch(`${baseUrl}/version`, { 
-                        method: 'GET',
-                        cache: 'no-cache'
-                    });
-                    if (res.ok) {
-                        const version = await res.text();
-                        addLog(`✅ 連線成功！版本: ${version}`, "success");
-                        return true;
-                    }
-                } catch (e) {
-                    addLog("❌ 連線失敗。這通常是瀏覽器攔截了本地檔案的跨來源請求。", "error");
-                    if (isFileProtocol) {
-                        addLog("💡 偵測到您使用「檔案直接開啟」，請參考左側選單下方的 Linux 修復教學。", "warn");
-                    }
-                }
-                return false;
-            };
-
-            const callVoicevox = async (text) => {
-                const baseUrl = `http://${vvHost}:50021`;
-                try {
-                    const queryRes = await fetch(`${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${vvSpeaker}`, { 
-                        method: 'POST'
-                    });
-                    if (!queryRes.ok) throw new Error("VOICEVOX Query 失敗");
-                    const queryJson = await queryRes.json();
-
-                    const synthRes = await fetch(`${baseUrl}/synthesis?speaker=${vvSpeaker}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(queryJson)
-                    });
-                    if (!synthRes.ok) throw new Error("VOICEVOX Synthesis 失敗");
-                    
-                    const blob = await synthRes.blob();
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (e) {
-                    throw new Error("VOICEVOX 通訊錯誤，請檢查伺服器是否斷開。");
-                }
-            };
-
-            const callGoogleTranslate = async (text) => {
-                const response = await fetch(`${gasUrl}?action=proxy_google_tts&text=${encodeURIComponent(text)}`);
-                const result = await response.json();
-                if (result.data) return result.data;
-                throw new Error(result.error || "Google 代理失敗");
-            };
-
-            const callGeminiDirectly = async (text, retryCount = 0) => {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-                const salt = Math.random().toString(36).substring(7);
-                const payload = {
-                    contents: [{ parts: [{ text: `ID:[${salt}]. Read: ${text}` }] }],
-                    generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } } } },
-                    model: "gemini-2.5-flash-preview-tts"
-                };
-
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (response.status === 429) {
-                    const errorData = await response.json();
-                    const waitMatch = (errorData.error?.message || "").match(/retry in ([\d.]+)s/);
-                    let waitMs = (waitMatch ? parseFloat(waitMatch[1]) + 5 : 65) * 1000;
-                    if (retryCount < 5) {
-                        addLog(`Gemini 限額中，等待 ${Math.round(waitMs/1000)}s...`, 'warn');
-                        setStatus('Cooldown');
-                        if (await smartSleep(waitMs)) throw new Error("USER_STOP");
-                        setStatus('Working');
-                        return callGeminiDirectly(text, retryCount + 1);
-                    }
-                }
-                const res = await response.json();
-                return res.candidates[0].content.parts.find(p => p.inlineData).inlineData.data;
-            };
-
-            const analyzeCache = async () => {
-                if (!gasUrl) return addLog('請先填寫 GAS URL', 'error');
-                setStatus('Analyzing...');
-                try {
-                    const syncRes = await fetch(`${gasUrl}?action=sync`);
-                    const courses = await syncRes.json();
-                    const cacheRes = await fetch(`${gasUrl}?action=list_cache`);
-                    const { files } = await cacheRes.json();
-                    const cacheSet = new Set(files.map(f => f.replace('.txt', '')));
-
-                    let allItems = [];
-                    Object.values(courses).forEach(items => {
-                        items.forEach(item => {
-                            if (!item.reading) return;
-                            const text = (item.secondaryreading && item.secondaryreading.trim() !== "") ? `${item.reading}。 ${item.secondaryreading}` : item.reading;
-                            allItems.push(text);
-                        });
-                    });
-
-                    const uniqueItems = [...new Set(allItems)];
-                    const missing = uniqueItems.filter(text => !cacheSet.has(text.replace(/[\\\/\:\*\?\"\<\>\|]/g, "_")));
-
-                    setItemsToProcess(missing);
-                    setProgress({ current: 0, total: missing.length });
-                    setStatus(missing.length === 0 ? 'Synced' : 'Ready');
-                    addLog(`分析完畢：發現 ${missing.length} 個缺失檔案。`, 'success');
-                } catch (e) {
-                    setStatus('Error');
-                    addLog('連線失敗: ' + e.message, 'error');
-                }
-            };
-
-            const startBatch = async () => {
-                if (ttsEngine === 'voicevox') {
-                    const isOk = await checkVoicevoxStatus();
-                    if (!isOk) return;
-                }
-
-                setIsWorking(true);
-                stopRef.current = false;
-                setStatus('Working');
-                addLog(`🚀 程序啟動 (引擎: ${ttsEngine.toUpperCase()})`);
-
-                for (let i = 0; i < itemsToProcess.length; i++) {
-                    if (stopRef.current) break;
-                    const text = itemsToProcess[i];
-                    setProgress(prev => ({ ...prev, current: i + 1 }));
-                    addLog(`[${i+1}/${itemsToProcess.length}] 處理中: ${text.substring(0, 10)}...`);
-
-                    try {
-                        const base64Data = (ttsEngine === 'voicevox') ? await callVoicevox(text) : (ttsEngine === 'google' ? await callGoogleTranslate(text) : await callGeminiDirectly(text));
-                        if (stopRef.current) break;
-                        await fetch(gasUrl, { method: 'POST', body: JSON.stringify({ action: "save_audio", text: text, data: base64Data }) });
-                        addLog(`✅ 成功並同步至雲端`, 'success');
-
-                        if (i < itemsToProcess.length - 1) {
-                            let wait = (ttsEngine === 'voicevox') ? 1500 : (ttsEngine === 'google' ? 1000 : 18000);
-                            wait += Math.random() * 2000;
-                            if (await smartSleep(wait)) break;
-                        }
-                    } catch (e) {
-                        addLog(`❌ 失敗: ${e.message}`, 'error');
-                        if (e.message === "USER_STOP") break;
-                    }
-                }
-                setIsWorking(false);
-                setCountdown(0);
-                setStatus('Finished');
-                addLog('🏁 作業結束。');
-            };
-
-            useEffect(() => { 
-                localStorage.setItem('km_mgr_url', gasUrl); 
-                localStorage.setItem('km_mgr_key', apiKey);
-                localStorage.setItem('km_mgr_engine', ttsEngine);
-                localStorage.setItem('km_mgr_vv_id', vvSpeaker);
-                localStorage.setItem('km_mgr_vv_host', vvHost);
-            }, [gasUrl, apiKey, ttsEngine, vvSpeaker, vvHost]);
-
-            return (
-                <div className="max-w-4xl mx-auto p-6 md:p-10 text-left">
-                    <header className="mb-10 flex justify-between items-center">
-                        <h1 className="text-2xl font-black text-indigo-400 flex items-center gap-3 italic">
-                            <Icon name="activity" size={28} className="text-emerald-400" /> KANA MASTER MGR v4.6
-                        </h1>
-                        <div className={`px-4 py-1 rounded-lg text-xs font-bold border transition-all ${isWorking ? (countdown > 0 ? 'cooldown-mode border-amber-500 text-amber-500' : 'border-indigo-500 text-indigo-400') : 'border-slate-700 text-slate-500'}`}>
-                            {status.toUpperCase()} {countdown > 0 ? `(${countdown}s)` : ''}
-                        </div>
-                    </header>
-
-                    <main className="grid md:grid-cols-5 gap-6">
-                        <div className="md:col-span-2 space-y-6 text-sm text-left">
-                            {isFileProtocol && (
-                                <section className="bg-rose-900/20 border border-rose-500/30 p-4 rounded-2xl file-protocol-warning">
-                                    <h3 className="text-rose-400 font-bold text-xs flex items-center gap-2 mb-2">
-                                        <Icon name="alert-triangle" size={14} /> 偵測到直接開啟檔案 (file://)
-                                    </h3>
-                                    <p className="text-[10px] text-rose-200/70 leading-relaxed mb-3">
-                                        直接開啟 HTML 檔案會被瀏覽器阻擋對 localhost 的存取。請開啟終端機，在該資料夾執行：
-                                    </p>
-                                    <code className="block bg-black/40 p-2 rounded font-mono text-[9px] text-emerald-400 mb-2 select-all cursor-copy">
-                                        python3 -m http.server 8000
-                                    </code>
-                                    <p className="text-[10px] text-rose-200/70">
-                                        然後在瀏覽器輸入 <b>http://localhost:8000</b> 即可 100% 正常運作。
-                                    </p>
-                                </section>
-                            )}
-
-                            <section className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 shadow-xl space-y-4">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1">GAS Web App URL</label>
-                                    <input type="text" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full bg-slate-900 rounded-xl p-3 text-xs font-mono text-indigo-300 outline-none border border-transparent focus:border-indigo-500" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-widest">發音引擎</label>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        <button onClick={() => setTtsEngine('voicevox')} className={`w-full py-2 rounded-xl border-2 font-bold transition-all flex items-center justify-center gap-2 ${ttsEngine === 'voicevox' ? 'bg-emerald-600/20 border-emerald-500 text-emerald-400 voicevox-glow' : 'border-slate-700 text-slate-500 opacity-50'}`}>
-                                            VOICEVOX (本地端)
-                                        </button>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={() => setTtsEngine('google')} className={`py-2 rounded-xl border-2 font-bold transition-all ${ttsEngine === 'google' ? 'bg-blue-600/20 border-blue-500 text-blue-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Google 代理</button>
-                                            <button onClick={() => setTtsEngine('gemini')} className={`py-2 rounded-xl border-2 font-bold transition-all ${ttsEngine === 'gemini' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400' : 'border-slate-700 text-slate-500 opacity-50'}`}>Gemini TTS</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {ttsEngine === 'voicevox' && (
-                                    <div className="space-y-3 p-3 bg-slate-900/50 rounded-xl border border-slate-700 animate-in fade-in">
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 font-mono">連線地址 (當前: {vvHost})</label>
-                                            <div className="grid grid-cols-2 gap-1 mt-1">
-                                                <button onClick={() => setVvHost('127.0.0.1')} className={`py-1 text-[10px] rounded ${vvHost === '127.0.0.1' ? 'bg-emerald-600 text-white' : 'bg-slate-800'}`}>127.0.0.1</button>
-                                                <button onClick={() => setVvHost('localhost')} className={`py-1 text-[10px] rounded ${vvHost === 'localhost' ? 'bg-emerald-600 text-white' : 'bg-slate-800'}`}>localhost</button>
-                                            </div>
-                                        </div>
-                                        <button onClick={checkVoicevoxStatus} className="w-full bg-slate-700 py-1.5 rounded-lg text-xs hover:bg-slate-600 transition-colors">點此測試連線</button>
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-500 uppercase ml-1 font-mono">Speaker ID: {vvSpeaker}</label>
-                                            <input type="range" min="0" max="60" value={vvSpeaker} onChange={(e) => setVvSpeaker(e.target.value)} className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer" />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="pt-2 space-y-2">
-                                    <button onClick={analyzeCache} disabled={isWorking} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold transition-all">1. 分析庫存缺口</button>
-                                    <button onClick={startBatch} disabled={itemsToProcess.length === 0 || isWorking} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">2. 開始自動補完</button>
-                                    {isWorking && <button onClick={() => stopRef.current = true} className="w-full bg-rose-600/20 text-rose-500 border border-rose-500/40 py-3 rounded-xl font-bold">停止作業</button>}
-                                </div>
-                            </section>
-
-                            <section className="bg-slate-800/50 p-6 rounded-[2rem] border border-slate-700 space-y-3">
-                                <h2 className="text-xs font-black text-slate-400 uppercase">補完進度 {progress.current}/{progress.total}</h2>
-                                <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
-                                    <div className={`h-full transition-all duration-500 ${ttsEngine === 'voicevox' ? 'bg-emerald-500' : 'bg-indigo-500'}`} style={{ width: `${progress.total > 0 ? (progress.current/progress.total)*100 : 0}%` }}></div>
-                                </div>
-                            </section>
-                        </div>
-
-                        <div className="md:col-span-3 h-[720px] flex flex-col">
-                            <div className="bg-slate-800 flex-1 rounded-[2.5rem] border border-slate-700 flex flex-col overflow-hidden shadow-2xl">
-                                <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center font-black text-[10px] text-slate-500 uppercase">日誌監控 (v4.6)</div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-[11px] no-scrollbar text-left">
-                                    {logs.map(log => (
-                                        <div key={log.id} className={`p-3 rounded-xl border log-enter ${
-                                            log.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                                            log.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                            log.type === 'warn' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                            'bg-slate-900/50 text-slate-300 border-slate-700/50'
-                                        }`}>{log.msg}</div>
-                                    ))}
-                                    {logs.length === 0 && <div className="h-full flex items-center justify-center text-slate-700 italic">準備就緒...</div>}
-                                </div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
-            );
+        function log(msg, color = 'emerald') {
+            const colors = { emerald: 'text-emerald-400', rose: 'text-rose-400', amber: 'text-amber-400', indigo: 'text-indigo-300' };
+            const time = new Date().toLocaleTimeString();
+            dom.logArea.innerHTML += `\n<span class="text-slate-500">[${time}]</span> <span class="${colors[color]}">${msg}</span>`;
+            dom.logArea.scrollTop = dom.logArea.scrollHeight;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root')); 
-        root.render(<App />);
+        // --- MP3 編碼核心 ---
+        async function encodeToMp3(wavBuffer) {
+            // 由於 Voicevox 產出的是標準 WAV，我們需要跳過 44 bytes 的檔頭取 PCM16 數據
+            const pcmData = new Int16Array(wavBuffer.slice(44));
+            const mp3encoder = new lamejs.Mp3Encoder(1, 24000, 128); // 單聲道, 24kHz, 128kbps
+            const mp3Data = [];
+            const sampleBlockSize = 576; // lamejs 的處理區塊大小
+
+            for (let i = 0; i < pcmData.length; i += sampleBlockSize) {
+                const sampleChunk = pcmData.subarray(i, i + sampleBlockSize);
+                const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+                if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
+            }
+            const endBuf = mp3encoder.flush();
+            if (endBuf.length > 0) mp3Data.push(new Uint8Array(endBuf));
+
+            // 合併 Blob 並轉 Base64
+            const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]); // 只取 base64 部分
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // --- 存檔至 GAS ---
+        async function saveToCloud(text, base64) {
+            const url = dom.gasUrl.value;
+            const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}action=save_audio&format=mp3`, {
+                method: 'POST',
+                body: JSON.stringify({ text, data: base64 })
+            });
+            return res.json();
+        }
+
+        // --- 遷移工具邏輯 ---
+        dom.migrateBtn.onclick = async () => {
+            if (!dom.gasUrl.value) return alert('請先設定 GAS URL');
+            if (!confirm('確定要啟動遷移工具嗎？這會讀取舊的 WAV 並轉存為 MP3。')) return;
+
+            dom.migrationProgress.classList.remove('hidden');
+            dom.migrateBtn.disabled = true;
+            dom.statusTag.innerText = "MIGRATING...";
+            dom.statusTag.classList.add('recording-pulse');
+
+            try {
+                log('Fetching course list and existing cache...', 'amber');
+                const res = await fetch(`${dom.gasUrl.value}${dom.gasUrl.value.includes('?') ? '&' : '?'}action=sync`);
+                const courses = await res.json();
+                
+                // 展平所有單字
+                let allItems = [];
+                Object.values(courses).forEach(items => allItems = allItems.concat(items));
+                
+                // 建立任務清單
+                const tasks = allItems.map(i => (i.secondaryreading && i.secondaryreading.trim() !== "") ? `${i.reading}。 ${i.secondaryreading}` : i.reading);
+                const uniqueTasks = [...new Set(tasks)];
+                
+                log(`Found ${uniqueTasks.length} unique audio tasks. Starting conversion...`, 'indigo');
+
+                let count = 0;
+                for (const text of uniqueTasks) {
+                    try {
+                        // 1. 從舊系統抓取原始 WAV (假設舊系統暫時還在服務)
+                        log(`Processing: ${text.substring(0, 10)}...`, 'slate');
+                        const fetchRes = await fetch(`${dom.gasUrl.value}${dom.gasUrl.value.includes('?') ? '&' : '?'}action=tts&text=${encodeURIComponent(text)}`);
+                        const result = await fetchRes.json();
+                        
+                        if (result.data) {
+                            // 2. 轉碼為 MP3
+                            // 檢查來源：如果是舊的 pcmToWav 格式，我們需要先還原成 binary
+                            const binary = atob(result.data);
+                            const arrayBuffer = new ArrayBuffer(binary.length);
+                            const view = new Uint8Array(arrayBuffer);
+                            for(let i=0; i<binary.length; i++) view[i] = binary.charCodeAt(i);
+
+                            const mp3Base64 = await encodeToMp3(arrayBuffer);
+                            
+                            // 3. 存入新資料夾 (透過 format=mp3 參數)
+                            await saveToCloud(text, mp3Base64);
+                            log(`✓ Converted and Saved as MP3`, 'emerald');
+                        }
+                    } catch (e) {
+                        log(`✕ Failed to process: ${text}`, 'rose');
+                    }
+                    
+                    count++;
+                    const progress = Math.round((count / uniqueTasks.length) * 100);
+                    dom.migrateBar.style.width = `${progress}%`;
+                    dom.migrateStatus.innerText = `已完成: ${count} / ${uniqueTasks.length}`;
+                }
+
+                log('MIGRATION COMPLETED SUCCESSFULLY!', 'emerald');
+                dom.statusTag.innerText = "COMPLETED";
+            } catch (err) {
+                log(`CRITICAL ERROR: ${err.message}`, 'rose');
+            } finally {
+                dom.migrateBtn.disabled = false;
+                dom.statusTag.classList.remove('recording-pulse');
+            }
+        };
+
+        // --- 補完缺口邏輯 ---
+        document.getElementById('syncManual').onclick = async () => {
+            // 這裡未來可以寫針對 MP3 資料夾的補齊邏輯
+            log('MP3 Scan logic not yet fully implemented. Please use Migration Tool first.', 'amber');
+        };
+
+        document.getElementById('clearLog').onclick = () => {
+            dom.logArea.innerHTML = '> Log cleared.';
+        };
     </script>
 </body>
 </html>
