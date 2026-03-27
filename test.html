@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v7.2 - Spatial Optimization</title>
+    <title>Kana Master v7.3 - Vision Maximized</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -99,13 +99,13 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v7.2";
+        const APP_VERSION = "v7.3";
 
         const MANUAL_LESSON = [
-            { unit: "教學", category: "sentence", primary: "空[くう]間[かん]解[かい]放[ほう]", reading: "くうかんかいほう", meaning: "v7.2 取消固定比例，讓卡片完整撐開", secondary: "空間[くうかん]の有効[ゆうこう]利用[りよう]", secondaryreading: "くうかんのゆうこうりよう", emoji: "🚀", notes: "解決了手機版資訊緊湊且下方留白過多的問題。" },
-            { unit: "教學", category: "sentence", primary: "佈[ふ]局[きょく]平衡[へいこう]", reading: "ふきょくへいこう", meaning: "確保卡片垂直置中，不再上移", secondary: "完璧[かんぺき]な中央[ちゅうおう]", secondaryreading: "かんぺきなちゅうおう", emoji: "⚖️", notes: "針對不同長度螢幕進行動態調整。" },
-            { unit: "教學", category: "sentence", primary: "智[ち]能[のう]預[よ]取[しゅ]", reading: "ちのうよしゅ", meaning: "支援在 WiFi 環境下自動背景下載語音", secondary: "背景[はいけい]同期[どうき]", secondaryreading: "はいけいどうき", emoji: "🛰️", notes: "同步時左上角會出現旋轉圖示。" },
-            { unit: "教學", category: "sentence", primary: "自[じ]動[動]播[は]放[ほう]", reading: "じ開くほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "ハンズフリー", secondaryreading: "はんずふりー", emoji: "▶️", notes: "適合通勤或睡前複習。" }
+            { unit: "教學", category: "sentence", primary: "視[し]界[かい]滿[まん]載[さい]", reading: "しかいまんさい", meaning: "v7.3 最佳化空間分配，解決卡片縮小感", secondary: "空間[くうかん]のフル[ふる]活用[かつよう]", secondaryreading: "くうかんのふるかつよう", emoji: "🖼️", notes: "解決了截圖中卡片過小、內部資訊擠在一團的問題。" },
+            { unit: "教學", category: "sentence", primary: "智[ち]能[のう]預[よ]取[しゅ]", reading: "ちのうよしゅ", meaning: "支援在 WiFi 環境下自動背景下載語音", secondary: "背景[はいけい]同期[どうき]", secondaryreading: "はいけいどうき", emoji: "🛰️", notes: "同步時標題列會出現旋轉圖示。" },
+            { unit: "教學", category: "sentence", primary: "自[じ]動[動]播[は]放[ほう]", reading: "じ開くほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "ハンズフリー", secondaryreading: "はんずふりー", emoji: "▶️", notes: "適合通勤或睡前複習。" },
+            { unit: "教學", category: "sentence", primary: "螢[えい]幕[まく]常[じょう]亮[りょう]", reading: "えいまくじょうりょう", meaning: "練習中螢幕不會自動變暗關閉", secondary: "畫[が]面[めん]保持[ほじ]", secondaryreading: "がめんほじ", emoji: "💡", notes: "專注學習不被打斷。" }
         ];
 
         // --- IndexedDB ---
@@ -422,9 +422,9 @@
 
                     <main className="flex-1 min-h-0 relative flex flex-col">
                         {view === 'practice' && (
-                            <div className="h-full flex flex-col overflow-hidden relative">
-                                {/* 進度條區塊 */}
-                                <div className="p-4 pt-6 pb-2">
+                            <div className="h-full flex flex-col overflow-hidden text-left relative">
+                                {/* 頂部：進度條 (收緊間距) */}
+                                <div className="shrink-0 p-4 pb-0">
                                     <div className="w-full flex items-center gap-3 px-1 max-w-sm mx-auto">
                                         <span className="text-xs font-black text-slate-400 dark-mode-text uppercase tracking-wider shrink-0">{currentCard.unit}</span>
                                         <div className="flex-1 bg-slate-200 dark-mode-secondary h-1.5 rounded-full overflow-hidden shadow-inner relative">
@@ -434,51 +434,51 @@
                                     </div>
                                 </div>
 
-                                {/* 彈性伸縮區 A: 減少強制高度，讓內容有空間撐開 */}
-                                <div className="flex-grow min-h-[5px]"></div>
-
-                                {/* 卡片本體區：v7.2 解放比例限制，使用 flex-1 */}
-                                <div className="w-full px-4 flex-1 flex justify-center items-center animate-in fade-in duration-500 overflow-hidden">
+                                {/* 中央：卡片區 (解放空間，使用 flex-1 撐開) */}
+                                <div className="flex-1 flex items-center justify-center p-4">
                                     {cards.length > 0 ? (
-                                        <div className={`relative w-full max-w-sm h-full max-h-[550px] perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => { vibrate(5); setIsFlipped(!isFlipped); }}>
+                                        <div className={`relative w-full max-w-sm h-full max-h-[650px] perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => { vibrate(5); setIsFlipped(!isFlipped); }}>
                                             <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
-                                                {/* 正面內容分佈：加大 Emoji 佔比 */}
-                                                <div className="h-[30%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
+                                                {/* 正面內容：調整比例 25:75 */}
+                                                <div className="h-[25%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
                                                     <span className={`${isLargeFont ? 'text-8xl' : 'text-7xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-5 right-5 bg-indigo-600 text-white p-3 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-between py-8 px-6 text-center">
-                                                    <div className="flex-1 flex items-center justify-center w-full">
+                                                <div className="flex-1 flex flex-col items-center justify-around py-8 px-6 text-center">
+                                                    <div className="flex items-center justify-center w-full">
                                                         <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-9xl' : 'text-8xl')} font-black text-slate-800 dark-mode-text transition-all break-words leading-none`} />
                                                     </div>
                                                     {currentCard.secondary && (
-                                                        <div className="bg-indigo-50/50 dark-mode-secondary px-6 py-4 rounded-[2rem] border border-indigo-100/30 w-full min-h-[5rem] flex items-center justify-center shrink-0">
+                                                        <div className="bg-indigo-50/50 dark-mode-secondary px-6 py-4 rounded-[2rem] border border-indigo-100/30 w-full flex items-center justify-center">
                                                             <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic leading-tight`} />
                                                         </div>
                                                     )}
                                                 </div>
                                             </div>
 
-                                            <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 ${isFlipped ? 'flex' : 'hidden'}`}>
+                                            <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden rotate-y-180 border border-indigo-100 transition-all ${isFlipped ? 'flex' : 'hidden'}`}>
                                                 <div className="h-14 flex items-center justify-between px-6 bg-slate-50 dark-mode-secondary border-b shrink-0">
                                                     <div className="flex items-center gap-2"><span className="text-xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                 </div>
-                                                {/* 背面內容分佈：均勻分佈翻譯與筆記 */}
-                                                <div className="flex-1 flex flex-col p-6 text-center overflow-y-auto no-scrollbar justify-between">
-                                                    <div className="space-y-2 mt-4">
-                                                        <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">翻譯內容</p>
+                                                {/* 背面內容：垂直均勻分佈 */}
+                                                <div className="flex-1 flex flex-col p-6 text-center justify-between overflow-hidden">
+                                                    <div className="space-y-1">
+                                                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">翻譯內容</p>
                                                         <h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3>
                                                     </div>
                                                     
-                                                    <div className="space-y-4">
-                                                        {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-5 rounded-[2rem] w-full flex items-center justify-center"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
+                                                    <div className="flex-1 flex flex-col justify-center gap-4">
+                                                        {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-5 rounded-[2rem] w-full flex items-center justify-center min-h-[6rem]"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
                                                         
                                                         <div className="w-full text-left space-y-2">
                                                             {currentCard.notes && <div className={`${isLargeFont ? 'text-sm' : 'text-xs'} bg-slate-50 dark-mode-secondary p-4 rounded-2xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
-                                                            <div className="bg-rose-50/30 p-2.5 rounded-xl border border-rose-100/20">
-                                                                <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase text-left"><p className="text-rose-400 font-black">Hybrid Strategy</p><span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span></div>
-                                                                <p className="text-[10px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
+                                                            <div className="bg-rose-50/30 p-2.5 rounded-xl border border-rose-100/20 flex justify-between items-center">
+                                                                <div className="flex flex-col">
+                                                                    <p className="text-[8px] font-black text-rose-400 uppercase">Hybrid Strategy</p>
+                                                                    <p className="text-[10px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
+                                                                </div>
+                                                                <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black text-[9px] uppercase">{ttsStatus}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -490,18 +490,13 @@
                                     )}
                                 </div>
 
-                                {/* 彈性伸縮區 B: 同步縮小最小高度 */}
-                                <div className="flex-grow min-h-[5px]"></div>
-
-                                {/* 操作按鈕區：稍微調整邊距 */}
-                                {cards.length > 0 && (
-                                    <div className="w-full px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
-                                        <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                                            <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white dark-mode-card dark-mode-text dark-mode-border border py-4 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-sm uppercase tracking-widest">PREV</button>
-                                            <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-sm uppercase tracking-widest`}>NEXT</button>
-                                        </div>
+                                {/* 底部：操作按鈕 (移除絕對定位，回歸 Flex 佈局) */}
+                                <div className="shrink-0 p-4 pb-[calc(var(--safe-bottom)+1rem)]">
+                                    <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                                        <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white dark-mode-card dark-mode-text dark-mode-border border py-4 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-sm uppercase tracking-widest">PREV</button>
+                                        <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-sm uppercase tracking-widest`}>NEXT</button>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         )}
 
