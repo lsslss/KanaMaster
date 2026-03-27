@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v7.1 - Perfect Balance</title>
+    <title>Kana Master v7.2 - Spatial Optimization</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -99,13 +99,13 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v7.1";
+        const APP_VERSION = "v7.2";
 
         const MANUAL_LESSON = [
-            { unit: "教學", category: "sentence", primary: "佈[ふ]局[きょく]平衡[へいこう]", reading: "ふきょくへいこう", meaning: "v7.1 使用彈性伸縮區確保垂直置中", secondary: "完璧[かんぺき]な中央[ちゅうおう]", secondaryreading: "かんぺきなちゅうおう", emoji: "⚖️", notes: "解決了 v7.0 手機版重心上移的視覺 Bug。" },
+            { unit: "教學", category: "sentence", primary: "空[くう]間[かん]解[かい]放[ほう]", reading: "くうかんかいほう", meaning: "v7.2 取消固定比例，讓卡片完整撐開", secondary: "空間[くうかん]の有効[ゆうこう]利用[りよう]", secondaryreading: "くうかんのゆうこうりよう", emoji: "🚀", notes: "解決了手機版資訊緊湊且下方留白過多的問題。" },
+            { unit: "教學", category: "sentence", primary: "佈[ふ]局[きょく]平衡[へいこう]", reading: "ふきょくへいこう", meaning: "確保卡片垂直置中，不再上移", secondary: "完璧[かんぺき]な中央[ちゅうおう]", secondaryreading: "かんぺきなちゅうおう", emoji: "⚖️", notes: "針對不同長度螢幕進行動態調整。" },
             { unit: "教學", category: "sentence", primary: "智[ち]能[のう]預[よ]取[しゅ]", reading: "ちのうよしゅ", meaning: "支援在 WiFi 環境下自動背景下載語音", secondary: "背景[はいけい]同期[どうき]", secondaryreading: "はいけいどうき", emoji: "🛰️", notes: "同步時左上角會出現旋轉圖示。" },
-            { unit: "教學", category: "sentence", primary: "自[じ]動[動]播[は]放[ほう]", reading: "じ開くほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "ハンズフリー", secondaryreading: "はんずふりー", emoji: "▶️", notes: "適合通勤或睡前複習。" },
-            { unit: "教學", category: "sentence", primary: "大[だい]字[じ]版[はん]面[めん]", reading: "だいじはんめん", meaning: "漢字上的讀音清晰放大", secondary: "視認性[しにんせい]の向上[こうじょう]", secondaryreading: "しにんせいのこうじょう", emoji: "🔍", notes: "目前僅作用於卡片內容，確保 UI 精簡。" }
+            { unit: "教學", category: "sentence", primary: "自[じ]動[動]播[は]放[ほう]", reading: "じ開くほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "ハンズフリー", secondaryreading: "はんずふりー", emoji: "▶️", notes: "適合通勤或睡前複習。" }
         ];
 
         // --- IndexedDB ---
@@ -434,24 +434,25 @@
                                     </div>
                                 </div>
 
-                                {/* 彈性伸縮區 A: 確保卡片上方有空間 */}
-                                <div className="flex-grow min-h-[10px]"></div>
+                                {/* 彈性伸縮區 A: 減少強制高度，讓內容有空間撐開 */}
+                                <div className="flex-grow min-h-[5px]"></div>
 
-                                {/* 卡片本體區：不使用 absolute 避開按鈕，改用 flex 控制 */}
-                                <div className="w-full px-4 flex justify-center items-center animate-in fade-in duration-500">
+                                {/* 卡片本體區：v7.2 解放比例限制，使用 flex-1 */}
+                                <div className="w-full px-4 flex-1 flex justify-center items-center animate-in fade-in duration-500 overflow-hidden">
                                     {cards.length > 0 ? (
-                                        <div className={`relative w-full max-w-sm aspect-[4/5] perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => { vibrate(5); setIsFlipped(!isFlipped); }}>
+                                        <div className={`relative w-full max-w-sm h-full max-h-[550px] perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => { vibrate(5); setIsFlipped(!isFlipped); }}>
                                             <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
-                                                <div className="h-[20%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
+                                                {/* 正面內容分佈：加大 Emoji 佔比 */}
+                                                <div className="h-[30%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
                                                     <span className={`${isLargeFont ? 'text-8xl' : 'text-7xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-5 right-5 bg-indigo-600 text-white p-3 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-center px-6 py-2 text-center overflow-hidden">
+                                                <div className="flex-1 flex flex-col items-center justify-between py-8 px-6 text-center">
                                                     <div className="flex-1 flex items-center justify-center w-full">
-                                                        <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-8xl' : 'text-7xl')} font-black text-slate-800 dark-mode-text transition-all break-words`} />
+                                                        <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-9xl' : 'text-8xl')} font-black text-slate-800 dark-mode-text transition-all break-words leading-none`} />
                                                     </div>
                                                     {currentCard.secondary && (
-                                                        <div className="mt-2 mb-6 bg-indigo-50/50 dark-mode-secondary px-5 py-4 rounded-[1.5rem] border border-indigo-100/30 w-full min-h-[4rem] flex items-center justify-center shrink-0">
+                                                        <div className="bg-indigo-50/50 dark-mode-secondary px-6 py-4 rounded-[2rem] border border-indigo-100/30 w-full min-h-[5rem] flex items-center justify-center shrink-0">
                                                             <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic leading-tight`} />
                                                         </div>
                                                     )}
@@ -463,30 +464,38 @@
                                                     <div className="flex items-center gap-2"><span className="text-xl">{currentCard.emoji}</span><RubyText text={currentCard.primary} className="text-sm font-black text-slate-400" /></div>
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 overflow-y-auto no-scrollbar text-left">
-                                                    <div className="space-y-1"><h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-xs font-bold text-slate-300 uppercase tracking-widest text-center">翻譯</p></div>
-                                                    {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-5 rounded-[1.5rem] w-full min-h-[6rem] flex items-center justify-center"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
-                                                    <div className="w-full text-left space-y-2 pt-2 text-xs">
-                                                        {currentCard.notes && <div className={`${isLargeFont ? 'text-sm' : 'text-xs'} bg-slate-50 dark-mode-secondary p-4 rounded-2xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
-                                                        <div className="bg-rose-50/30 p-2.5 rounded-xl border border-rose-100/20">
-                                                            <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase"><p className="text-rose-400 font-black">Hybrid Strategy</p><span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span></div>
-                                                            <p className="text-[10px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
+                                                {/* 背面內容分佈：均勻分佈翻譯與筆記 */}
+                                                <div className="flex-1 flex flex-col p-6 text-center overflow-y-auto no-scrollbar justify-between">
+                                                    <div className="space-y-2 mt-4">
+                                                        <p className="text-xs font-bold text-slate-300 uppercase tracking-widest">翻譯內容</p>
+                                                        <h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-4">
+                                                        {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-5 rounded-[2rem] w-full flex items-center justify-center"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
+                                                        
+                                                        <div className="w-full text-left space-y-2">
+                                                            {currentCard.notes && <div className={`${isLargeFont ? 'text-sm' : 'text-xs'} bg-slate-50 dark-mode-secondary p-4 rounded-2xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
+                                                            <div className="bg-rose-50/30 p-2.5 rounded-xl border border-rose-100/20">
+                                                                <div className="flex justify-between items-center mb-1 text-[10px] font-black uppercase text-left"><p className="text-rose-400 font-black">Hybrid Strategy</p><span className="bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-black scale-75">{ttsStatus}</span></div>
+                                                                <p className="text-[10px] font-mono text-rose-500/50 truncate tracking-tight">{currentCard.reading} {currentCard.secondaryreading}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4 text-center"><Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p><button onClick={() => { vibrate(10); setView('settings'); }} className="bg-slate-200 text-slate-500 px-8 py-3 rounded-full text-sm font-black">前往設定</button></div>
+                                        <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4 text-center h-full"><Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p><button onClick={() => { vibrate(10); setView('settings'); }} className="bg-slate-200 text-slate-500 px-8 py-3 rounded-full text-sm font-black">前往設定</button></div>
                                     )}
                                 </div>
 
-                                {/* 彈性伸縮區 B: 確保卡片下方與按鈕對齊 */}
-                                <div className="flex-grow min-h-[80px]"></div>
+                                {/* 彈性伸縮區 B: 同步縮小最小高度 */}
+                                <div className="flex-grow min-h-[5px]"></div>
 
-                                {/* 操作按鈕區 */}
+                                {/* 操作按鈕區：稍微調整邊距 */}
                                 {cards.length > 0 && (
-                                    <div className="w-full px-4 pb-[calc(var(--safe-bottom)+1rem)]">
+                                    <div className="w-full px-4 pb-[calc(var(--safe-bottom)+1.5rem)]">
                                         <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
                                             <button onClick={() => { if(currentIndex>0) { setIsFlipped(false); setCurrentIndex(p=>p-1); } }} disabled={currentIndex === 0} className="bg-white dark-mode-card dark-mode-text dark-mode-border border py-4 rounded-2xl font-black text-slate-400 disabled:opacity-30 active:scale-95 transition-all shadow-sm text-sm uppercase tracking-widest">PREV</button>
                                             <button onClick={() => { if(currentIndex < cards.length-1) { setIsFlipped(false); setCurrentIndex(p=>p+1); } else generatePracticeSet(); }} className={`bg-${themePrimary}-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all text-sm uppercase tracking-widest`}>NEXT</button>
