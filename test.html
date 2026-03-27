@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v6.8 - Enhanced Typography</title>
+    <title>Kana Master v6.9 - Layout & Scaling Refined</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -72,15 +72,15 @@
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* 基礎字級優化：基準值全面提升至 1.25 行高 */
         ruby { display: inline-flex; flex-direction: column-reverse; align-items: center; vertical-align: bottom; margin: 0 1px; line-height: 1.25; }
         ruby rt { display: block; font-size: 0.5em; color: #6366f1; font-weight: 800; text-align: center; padding-bottom: 0.1em; width: 100%; line-height: 1; transition: all 0.3s ease; }
         
-        /* 大字模式：連動縮放全站字體 */
-        .large-font-mode { font-size: 1.15rem; }
+        /* v6.9 強化大字模式：縮放比例提升至 1.25 倍 */
+        .large-font-mode { font-size: 1.25rem; }
         .large-font-mode ruby { line-height: 1.45; }
-        .large-font-mode ruby rt { font-size: 0.65em; padding-bottom: 0.05em; }
-        .large-font-mode .card-shadow { box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.15); }
+        .large-font-mode ruby rt { font-size: 0.75em; padding-bottom: 0.05em; }
+        .large-font-mode .card-shadow { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.2); }
+        .large-font-mode section { padding: 1.75rem !important; }
 
         .card-shadow { box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.1), 0 5px 15px -5px rgba(0, 0, 0, 0.04); }
         :root { --safe-bottom: env(safe-area-inset-bottom, 20px); }
@@ -103,15 +103,16 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v6.8";
+        const APP_VERSION = "v6.9";
 
         const MANUAL_LESSON = [
-            { unit: "教學", category: "sentence", primary: "智[ち]能[のう]字[じ]級[きゅう]", reading: "ちのうじきゅう", meaning: "v6.8 提升了基準字級，並連動大字模式", secondary: "読みやすさの向上[こうじょう]", secondaryreading: "よみやすさのこうじょう", emoji: "🧐", notes: "解決了設定介面字體太小的使用者回饋。" },
-            { unit: "教學", category: "sentence", primary: "併[へい]列[れつ]下[か]載[さい]", reading: "へいれつかさい", meaning: "提升了下載速度，支援併發請求", secondary: "ス[す]ピ[ぴ]ー[ー]ド[ど]", secondaryreading: "すぴーど", emoji: "⚡", notes: "最高支援 6 個連線併發。" },
+            { unit: "教學", category: "sentence", primary: "佈[ふ]局[きょく]優[ゆう]化[か]", reading: "ふきょくゆうか", meaning: "v6.9 修正手機版卡片上移問題，強化大字縮放", secondary: "レイアウト修正[しゅうせい]", secondaryreading: "れいあうとしゅうせい", emoji: "📱", notes: "解決了手機版卡面顯示不平衡的 UI Bug。" },
+            { unit: "教學", category: "sentence", primary: "智[ち]能[のう]字[じ]級[きゅう]", reading: "ちのうajikyuu", meaning: "提升了基準字級，並連動大字模式", secondary: "読みやすさの向上[こうじょう]", secondaryreading: "よみやすさのこうじょう", emoji: "🧐", notes: "大字模式現在會同步放大設定選單。" },
             { unit: "教學", category: "sentence", primary: "自[じ]動[動]播[は]放[ほう]", reading: "じ開くほうそう", meaning: "開啟播放模式可雙手解放練習", secondary: "自[じ]動[動]巡[じゅん]回[かい]", secondaryreading: "じどうじゅんかい", emoji: "▶️", notes: "適合通勤或睡前複習。" },
-            { unit: "教學", category: "sentence", primary: "螢[えい]幕[まく]常[じょう]亮[りょう]", reading: "えいまくじょうりょう", meaning: "練習中螢幕不會自動變暗關閉", secondary: "畫[が]面[めん]保持[ほじ]", secondaryreading: "がめんほじ", emoji: "💡", notes: "專注學習不被打斷。" }
+            { unit: "教學", category: "sentence", primary: "螢[えい]幕[まく]常[じょう]亮[りょう]", reading: "えいまくじょうりょう", meaning: "練習中螢幕不會自動變暗關閉", secondary: "畫[が]面[めん]保持[ほじ]", secondaryreading: "가면호지", emoji: "💡", notes: "專注學習不被打斷。" }
         ];
 
+        // --- IndexedDB ---
         const DB_NAME = "KM_Audio_v40";
         const STORE_NAME = "local_audio";
         const initDB = () => new Promise((resolve) => {
@@ -286,7 +287,6 @@
                         if (card.secondaryreading) main.onend = () => { 
                             const sec = new SpeechSynthesisUtterance(card.secondaryreading);
                             sec.lang = 'ja-JP'; sec.rate = parseFloat(speechRate);
-                            sec.onend = resolve;
                             setTimeout(() => window.speechSynthesis.speak(sec), 400); 
                         }; else main.onend = resolve;
                         window.speechSynthesis.speak(main);
@@ -425,11 +425,12 @@
                     </header>
 
                     <main className="flex-1 min-h-0 relative">
+                        {/* 練習頁面：加入 flex justify-center 修正手機版卡片上移 Bug */}
                         {view === 'practice' && (
-                            <div className="h-full flex flex-col p-4 overflow-hidden text-left">
-                                <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 animate-in fade-in duration-500 pb-24 text-left">
+                            <div className="h-full flex flex-col p-4 overflow-hidden text-left relative">
+                                <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 animate-in fade-in duration-500 pb-28 text-left flex flex-col justify-center">
                                     {cards.length > 0 ? (
-                                        <>
+                                        <div className="space-y-4">
                                             <div className="shrink-0 flex items-center gap-3 px-1">
                                                 <span className="text-xs font-black text-slate-400 dark-mode-text uppercase tracking-wider shrink-0">{currentCard.unit}</span>
                                                 <div className="flex-1 bg-slate-200 dark-mode-secondary h-1 rounded-full overflow-hidden shadow-inner relative"><div className={`bg-${themePrimary}-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(79,70,229,0.3)]`} style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}></div></div>
@@ -440,7 +441,7 @@
                                                 <div className={`absolute inset-0 bg-white dark-mode-card rounded-[2.5rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
                                                     <div className="h-[20%] flex items-center justify-center bg-indigo-50/15 relative shrink-0">
                                                         <span className={`${isLargeFont ? 'text-8xl' : 'text-7xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
-                                                        <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-4 right-4 bg-themePrimary-600 bg-indigo-600 text-white p-2.5 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={20}/></button>
+                                                        <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-4 right-4 bg-indigo-600 text-white p-2.5 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                     </div>
                                                     <div className="flex-1 flex flex-col items-center justify-center px-6 py-2 text-center overflow-hidden">
                                                         <div className="flex-1 flex items-center justify-center w-full">
@@ -460,7 +461,7 @@
                                                         <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={20}/></button>
                                                     </div>
                                                     <div className="flex-1 flex flex-col items-center justify-center p-5 text-center space-y-3 overflow-y-auto no-scrollbar text-left">
-                                                        <div className="space-y-0.5"><h3 className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center w-full">翻譯</p></div>
+                                                        <div className="space-y-0.5"><h3 className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3><p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest text-center w-full text-left">翻譯</p></div>
                                                         {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-4 rounded-[1.5rem] w-full min-h-[5rem] flex items-center justify-center"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
                                                         <div className="w-full text-left space-y-2 pt-1 text-xs text-left">
                                                             {currentCard.notes && <div className={`${isLargeFont ? 'text-sm' : 'text-xs'} bg-slate-50 dark-mode-secondary p-3 rounded-2xl border border-slate-100 dark-mode-card text-slate-500 font-bold`}>{currentCard.notes}</div>}
@@ -472,7 +473,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
                                         <div className="flex-1 flex flex-col items-center justify-center p-10 text-slate-300 font-bold space-y-4 text-center h-full"><Icon name="search-x" size={48} /><p>尚未選擇單元或同步課程</p><button onClick={() => { vibrate(10); setView('settings'); }} className="bg-slate-200 text-slate-500 px-6 py-2 rounded-full text-sm uppercase font-black">前往設定</button></div>
                                     )}
@@ -488,56 +489,57 @@
                             </div>
                         )}
 
+                        {/* 設定頁面：v6.9 強化大字縮放連動 */}
                         {view === 'settings' && (
                             <div className="h-full flex flex-col overflow-hidden text-left">
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 animate-in slide-in-from-bottom-4 duration-500 pb-40 text-left">
-                                    <section className="bg-white dark-mode-card p-5 rounded-[2.5rem] shadow-lg space-y-4 text-left">
-                                        <div className="flex justify-between items-center"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="book-open" size={18} className="text-indigo-600" /> 學習範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={12} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
-                                        <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 使用手冊與導覽</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
-                                        <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">練習模式</label><div className="flex bg-slate-50 dark-mode-secondary p-1.5 rounded-xl gap-1.5 ring-1 ring-slate-100"><button onClick={() => setPracticeMode('order')} className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${practiceMode === 'order' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>循序 (Order)</button><button onClick={() => setPracticeMode('random')} className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${practiceMode === 'random' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400'}`}>隨機 (Shuffle)</button></div></div>
-                                        <div className="space-y-2"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-2.5">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3 px-2 rounded-xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
+                                    <section className="bg-white dark-mode-card p-6 rounded-[2.5rem] shadow-lg space-y-4 text-left transition-all">
+                                        <div className="flex justify-between items-center"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="book-open" size={20} className="text-indigo-600" /> 學習範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500 active:scale-90'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={14} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
+                                        <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-4 bg-slate-50 dark-mode-secondary dark-mode-text rounded-2xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500 appearance-none shadow-sm"><option value="builtin">💡 使用手冊與導覽</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
+                                        <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">練習模式</label><div className="flex bg-slate-50 dark-mode-secondary p-1.5 rounded-2xl gap-2 ring-1 ring-slate-100"><button onClick={() => setPracticeMode('order')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${practiceMode === 'order' ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`}>循序 (Order)</button><button onClick={() => setPracticeMode('random')} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${practiceMode === 'random' ? 'bg-white shadow-md text-amber-600' : 'text-slate-400'}`}>隨機 (Shuffle)</button></div></div>
+                                        <div className="space-y-2.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-3">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3.5 px-2 rounded-2xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
                                     </section>
 
-                                    <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight">{speechRate}x / {autoDownload ? 'Auto' : 'Manual'} / {wifiOnly ? 'WiFi' : 'Full'}</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                    <section className="bg-white dark-mode-card rounded-[2.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
+                                        <button onClick={() => toggleSection('pref')} className="w-full p-6 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={20} className="text-amber-500" /> 偏好設定</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight">{speechRate}x / {autoDownload ? 'Auto' : 'Manual'} / {wifiOnly ? 'WiFi' : 'Full'}</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={22} className="text-slate-300" /></button>
                                         {openSections.pref && (
-                                            <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
-                                                <div className="pt-2 space-y-4 text-left">
-                                                    <div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
-                                                    <label className="flex items-center justify-between cursor-pointer p-4 bg-slate-50 dark-mode-secondary rounded-xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">自動背景預取語音</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">進入練習頁時自動同步</span></div><input type="checkbox" checked={autoDownload} onChange={(e) => setAutoDownload(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
-                                                    <label className="flex items-center justify-between cursor-pointer p-4 bg-slate-50 dark-mode-secondary rounded-xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">僅在 WiFi 下執行</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">保護行動數據流量</span></div><input type="checkbox" checked={wifiOnly} onChange={(e) => setWifiOnly(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
-                                                    <div className="border-t border-slate-100 dark-mode-border pt-4 space-y-4">
-                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50"><div className="flex flex-col text-left"><span className="text-sm font-bold text-indigo-700 dark-mode-text leading-snug">大字版面模式</span><span className="text-[10px] text-indigo-400 text-left uppercase font-black">放大漢字讀音與全局 UI</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => setIsLargeFont(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
-                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-slate-50 dark-mode-secondary rounded-xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">啟用觸感回饋</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">按鈕微震動 (手機)</span></div><input type="checkbox" checked={useVibration} onChange={(e) => setUseVibration(e.target.checked)} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
+                                            <div className="px-6 pb-8 space-y-6 animate-in slide-in-from-top-2 text-left">
+                                                <div className="pt-2 space-y-5 text-left">
+                                                    <div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-2 bg-slate-100 dark-mode-secondary rounded-full appearance-none cursor-pointer" /></div>
+                                                    <label className="flex items-center justify-between cursor-pointer p-4.5 bg-slate-50 dark-mode-secondary rounded-2xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">自動背景預取語音</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">進入練習頁時自動同步</span></div><input type="checkbox" checked={autoDownload} onChange={(e) => setAutoDownload(e.target.checked)} className="w-7 h-7 rounded-lg accent-indigo-600" /></label>
+                                                    <label className="flex items-center justify-between cursor-pointer p-4.5 bg-slate-50 dark-mode-secondary rounded-2xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">僅在 WiFi 下執行</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">保護行動數據流量</span></div><input type="checkbox" checked={wifiOnly} onChange={(e) => setWifiOnly(e.target.checked)} className="w-7 h-7 rounded-lg accent-indigo-600" /></label>
+                                                    <div className="border-t border-slate-100 dark-mode-border pt-5 space-y-4">
+                                                        <label className="flex items-center justify-between cursor-pointer p-5 bg-indigo-50/50 dark-mode-secondary rounded-3xl border border-indigo-100/50 transition-all active:scale-[0.98]"><div className="flex flex-col text-left"><span className="text-base font-black text-indigo-700 dark-mode-text leading-snug">大字版面模式</span><span className="text-[11px] text-indigo-400 text-left uppercase font-black font-mono">ENHANCED SCALING (1.25X)</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(20); setIsLargeFont(e.target.checked); }} className="w-8 h-8 rounded-xl accent-indigo-600" /></label>
+                                                        <label className="flex items-center justify-between cursor-pointer p-4.5 bg-slate-50 dark-mode-secondary rounded-2xl"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text leading-snug">啟用觸感回饋</span><span className="text-[10px] text-slate-400 text-left uppercase font-black">按鈕微震動 (手機)</span></div><input type="checkbox" checked={useVibration} onChange={(e) => setUseVibration(e.target.checked)} className="w-7 h-7 rounded-lg accent-indigo-600" /></label>
                                                     </div>
-                                                    <div className="space-y-1.5 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">外觀主題</label><div className="flex bg-slate-100 dark-mode-secondary p-1 rounded-xl gap-1.5">{['light', 'dark', 'system'].map(m => (<button key={m} onClick={() => setThemePreference(m)} className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${themePreference === m ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>{m === 'light' ? '淺色' : m === 'dark' ? '深色' : '系統'}</button>))}</div></div>
+                                                    <div className="space-y-1.5 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">外觀主題</label><div className="flex bg-slate-100 dark-mode-secondary p-1.5 rounded-2xl gap-2">{['light', 'dark', 'system'].map(m => (<button key={m} onClick={() => { vibrate(5); setThemePreference(m); }} className={`flex-1 py-3 rounded-xl text-xs font-black transition-all ${themePreference === m ? 'bg-white shadow-md text-indigo-600' : 'text-slate-400'}`}>{m === 'light' ? '淺色' : m === 'dark' ? '深色' : '系統'}</button>))}</div></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
 
-                                    <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> 連線與同步</h3><p className="text-xs text-slate-400 font-bold mt-1 tracking-tight">{gasUrl ? 'Connected' : 'Setup Required'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                    <section className="bg-white dark-mode-card rounded-[2.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
+                                        <button onClick={() => toggleSection('sync')} className="w-full p-6 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={20} className="text-emerald-500" /> 連線與同步</h3><p className="text-xs text-slate-400 font-bold mt-1 tracking-tight">{gasUrl ? 'Connected' : 'Setup Required'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={22} className="text-slate-300" /></button>
                                         {openSections.sync && (
-                                            <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
+                                            <div className="px-6 pb-8 space-y-6 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 space-y-4 text-left">
-                                                    <input type="text" placeholder="貼上 GAS Web App URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-xs font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
-                                                    <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-xl bg-slate-800 text-white font-black text-sm active:scale-95 transition-all ${isSyncing ? 'opacity-50' : ''}`}>從雲端同步課程清單</button>
-                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors"><Icon name="trash-2" size={14} /> 重設應用程式</button></div>
+                                                    <input type="text" placeholder="貼上 GAS Web App URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-2xl text-xs font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
+                                                    <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-4.5 rounded-2xl bg-slate-800 text-white font-black text-sm active:scale-95 transition-all shadow-lg ${isSyncing ? 'opacity-50' : ''}`}>從雲端同步課程清單</button>
+                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-2 hover:text-rose-600 transition-colors py-2"><Icon name="trash-2" size={14} /> 重設應用程式 (Factory Reset)</button></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
 
-                                    <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left last-node">
-                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="database" size={18} className="text-rose-500" /> 語音資源管理</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight">{localCacheCount} Files Cached</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                    <section className="bg-white dark-mode-card rounded-[2.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left last-node">
+                                        <button onClick={() => toggleSection('voice')} className="w-full p-6 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="database" size={20} className="text-rose-500" /> 語音資源管理</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight">{localCacheCount} Files Cached</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={22} className="text-slate-300" /></button>
                                         {openSections.voice && (
-                                            <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
-                                                <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-5 rounded-2xl space-y-4 text-left">
+                                            <div className="px-6 pb-8 space-y-6 animate-in slide-in-from-top-2 text-left">
+                                                <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-6 rounded-3xl space-y-5 text-left">
                                                     {downloadProgress !== null ? (
-                                                        <div className="space-y-2"><div className="flex justify-between text-xs font-black text-indigo-400 uppercase tracking-widest"><span>Downloading...</span><span>{downloadProgress}%</span></div><div className="w-full bg-white h-2 rounded-full overflow-hidden mt-1 shadow-inner"><div className="bg-indigo-600 h-full transition-all" style={{ width: `${downloadProgress}%` }}></div></div></div>
+                                                        <div className="space-y-2.5"><div className="flex justify-between text-xs font-black text-indigo-400 uppercase tracking-widest"><span>Downloading...</span><span>{downloadProgress}%</span></div><div className="w-full bg-white h-2.5 rounded-full overflow-hidden mt-1 shadow-inner"><div className="bg-indigo-600 h-full transition-all" style={{ width: `${downloadProgress}%` }}></div></div></div>
                                                     ) : (
-                                                        <div className="flex gap-3"><button onClick={downloadAll} className="flex-1 bg-indigo-600 text-white text-xs py-3.5 rounded-xl font-black shadow-sm active:scale-95 transition-all uppercase tracking-tighter">下載語音離線包</button><button onClick={clearCache} className="bg-white border border-rose-200 text-rose-500 text-xs py-3.5 px-4 rounded-xl font-black active:scale-95 transition-all">清除</button></div>
+                                                        <div className="flex gap-4"><button onClick={downloadAll} className="flex-1 bg-indigo-600 text-white text-xs py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all uppercase tracking-tighter">下載語音離線包</button><button onClick={clearCache} className="bg-white border border-rose-200 text-rose-500 text-xs py-4 px-5 rounded-2xl font-black active:scale-95 transition-all">清除</button></div>
                                                     )}
                                                 </div>
                                             </div>
@@ -546,7 +548,7 @@
                                 </div>
                                 <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 dark-mode-bg to-transparent">
                                     <div className="pb-[calc(var(--safe-bottom)+0.5rem)] text-left">
-                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={20} /><span className="text-sm font-black uppercase tracking-widest">套用設定並開始</span></button>
+                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest">套用設定並開始</span></button>
                                     </div>
                                 </div>
                             </div>
