@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v8.0-Lab (MP3 Dev)</title>
+    <title>Kana Master v8.1-Lab (Isolated DB)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -21,7 +21,7 @@
             const manifest = {
                 "name": "Kana Master (Lab)",
                 "short_name": "KM Lab",
-                "id": absoluteUrl + "?dev",
+                "id": absoluteUrl + "?dev_v2",
                 "start_url": absoluteUrl,
                 "display": "standalone",
                 "background_color": "#0f172a",
@@ -43,7 +43,6 @@
                 window.addEventListener('load', () => {
                     const isSupportedProtocol = ['http:', 'https:'].includes(location.protocol) || location.hostname === 'localhost';
                     if (isSupportedProtocol) {
-                        // 開發版註冊 sw.js
                         navigator.serviceWorker.register('sw.js').then(reg => {
                             window.swRegistration = reg;
                             reg.onupdatefound = () => {
@@ -98,16 +97,17 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v8.0-Lab";
+        const APP_VERSION = "v8.1-Lab";
 
         const MANUAL_LESSON = [
-            { unit: "實驗室", category: "sentence", primary: "MP3 編[へん]碼[こう]", reading: "えむぴーすりーへんこう", meaning: "v8.0 全面改採 MP3，檔案縮小 90%", secondary: "高音質[こうおんしつ]・軽量[けいりょう]", secondaryreading: "こうおんしつけいりょう", emoji: "🎧", notes: "本版本已移除 WAV 檔頭轉換邏輯，執行更流暢。" },
-            { unit: "實驗室", category: "sentence", primary: "環境[かんきょう]隔離[かくり]", reading: "かんきょうかくり", meaning: "測試版與穩定版資料夾已完全分開", secondary: "獨立[どくりつ]テスト", secondaryreading: "どくりつてすと", emoji: "🧪", notes: "開發動作將不再干擾穩定版使用者。" }
+            { unit: "實驗室", category: "sentence", primary: "存儲[そんちょ]隔離[かくり]", reading: "そんちょかくり", meaning: "v8.1 建立專屬資料庫，避免與穩定版衝突", secondary: "完全[かんぜん]なる分離[ぶんり]", secondaryreading: "かんぜんなるぶんり", emoji: "🛡️", notes: "測試版的 IndexedDB 現在名為 KM_Lab_Audio_v1。" },
+            { unit: "實驗室", category: "sentence", primary: "MP3 編[へん]碼[こう]", reading: "えむぴーすりーへんこう", meaning: "全速下載體驗，檔案極小音質不減", secondary: "超高速[ちょうこうそく]", secondaryreading: "ちょうこうそく", emoji: "🚀", notes: "200 個單字僅佔用約 5MB 空間。" }
         ];
 
-        // --- IndexedDB ---
-        const DB_NAME = "KM_Audio_v40"; // 共享語音庫
+        // --- 核心修改：資料庫完全隔離 ---
+        const DB_NAME = "KM_Lab_Audio_v1"; 
         const STORE_NAME = "local_audio";
+        
         const initDB = () => new Promise((resolve) => {
             const request = indexedDB.open(DB_NAME, 1);
             request.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME); };
@@ -162,7 +162,6 @@
             const [themePreference, setThemePreference] = useState(() => localStorage.getItem('km_theme_v61') || 'system');
 
             const [autoDownload, setAutoDownload] = useState(() => JSON.parse(localStorage.getItem('km_auto_dl_v63') ?? 'true'));
-            const [wifiOnly, setWifiOnly] = useState(() => JSON.parse(localStorage.getItem('km_wifi_only_v63') ?? 'true'));
             const [isBgSyncing, setIsBgSyncing] = useState(false);
 
             const vibrate = (ms = 15) => { if (useVibration && navigator.vibrate) navigator.vibrate(ms); };
@@ -229,7 +228,7 @@
                     fetchingRef.current.add(text);
                     const localBase64 = await getLocal(text);
                     if (localBase64) {
-                        setTtsStatus('HIT: LOCAL MP3');
+                        setTtsStatus('HIT: LAB DISK');
                         const audio = new Audio("data:audio/mpeg;base64," + localBase64);
                         audioCache.current[text] = audio; return audio;
                     }
@@ -323,7 +322,7 @@
                 checkAndSync();
             }, [view, cards, autoDownload, gasUrl]);
 
-            const clearCache = async () => { if (confirm('確定要清空本地 MP3 快取嗎？')) { vibrate(50); await deleteStore(); audioCache.current = {}; countLocalItems().then(setLocalCacheCount); } };
+            const clearCache = async () => { if (confirm('確定要清空 Lab 專屬 MP3 快取嗎？(不影響穩定版)')) { vibrate(50); await deleteStore(); audioCache.current = {}; countLocalItems().then(setLocalCacheCount); } };
             const factoryReset = async () => { if (confirm('⚠️ 實驗室警告：重設所有測試資料？')) { vibrate(100); localStorage.clear(); await deleteStore(); window.location.reload(); } };
             const checkUpdateManually = async () => {
                 if (!window.swRegistration) return alert('SW 尚未就緒');
@@ -343,8 +342,7 @@
                 localStorage.setItem('km_vibrate_v61', JSON.stringify(useVibration));
                 localStorage.setItem('km_theme_v61', themePreference);
                 localStorage.setItem('km_auto_dl_v63', JSON.stringify(autoDownload));
-                localStorage.setItem('km_wifi_only_v63', JSON.stringify(wifiOnly));
-            }, [gasUrl, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId, useVibration, themePreference, autoDownload, wifiOnly]);
+            }, [gasUrl, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId, useVibration, themePreference, autoDownload]);
 
             const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
             const themePrimary = practiceMode === 'random' ? 'amber' : 'indigo';
@@ -444,7 +442,7 @@
                                                             {currentCard.notes && <div className={`${isLargeFont ? 'text-base' : 'text-sm'} bg-slate-50 dark-mode-secondary p-5 rounded-3xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
                                                             <div className="bg-rose-50/30 p-3 rounded-2xl border border-rose-100/20 flex justify-between items-center">
                                                                 <div className="flex flex-col text-left">
-                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider text-left">LAB ENGINE (MP3)</p>
+                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider text-left">LAB DB (Isolated)</p>
                                                                     <p className="text-xs font-mono text-rose-500/50 truncate tracking-tight text-left">{currentCard.reading} {currentCard.secondaryreading}</p>
                                                                 </div>
                                                                 <span className="bg-emerald-500 text-white px-2.5 py-1 rounded-full font-black text-[10px] uppercase shadow-sm">{ttsStatus}</span>
@@ -472,13 +470,13 @@
                             <div className="h-full flex flex-col overflow-hidden text-left">
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 animate-in slide-in-from-bottom-4 duration-500 pb-40 text-left">
                                     <section className="bg-white dark-mode-card p-5 rounded-[2.5rem] shadow-lg space-y-4 text-left">
-                                        <div className="flex justify-between items-center text-left"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={12} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
+                                        <div className="flex justify-between items-center text-left"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2 text-left"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={12} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
                                         <div className="space-y-1.5 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇 Lab 課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 實驗室手冊</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
                                         <div className="space-y-2 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-2.5">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3 px-2 rounded-xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">MP3 Lab Mode</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">Isolated Lab Mode</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.pref && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 space-y-4 text-left">
@@ -492,25 +490,25 @@
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-xs text-slate-400 font-bold mt-1 tracking-tight text-left">Dev GAS Required</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-xs text-slate-400 font-bold mt-1 tracking-tight text-left">Dev GAS Required</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.sync && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 space-y-4 text-left">
                                                     <input type="text" placeholder="貼上 Dev GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-xs font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
                                                     <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-xl bg-slate-800 text-white font-black text-sm active:scale-95 transition-all shadow-lg ${isSyncing ? 'opacity-50' : ''}`}>從 Lab 環境同步課程</button>
-                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors py-2"><Icon name="trash-2" size={14} /> 重設測試資料 (Factory Reset)</button></div>
+                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors py-2 text-left"><Icon name="trash-2" size={14} /> 重設測試資料 (Factory Reset)</button></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left last-node">
-                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="database" size={18} className="text-rose-500" /> 資源 (MP3 版)</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">{localCacheCount} Files Cached</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="database" size={18} className="text-rose-500" /> 資源 (Lab 專屬)</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">{localCacheCount} Files Cached</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.voice && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-5 rounded-2xl space-y-4 text-left">
                                                     {downloadProgress !== null ? (
-                                                        <div className="space-y-2 text-left"><div className="flex justify-between text-xs font-black text-indigo-400 uppercase tracking-widest text-left"><span>Downloading MP3...</span><span>{downloadProgress}%</span></div><div className="w-full bg-white h-2 rounded-full overflow-hidden mt-1 shadow-inner"><div className="bg-indigo-600 h-full transition-all" style={{ width: `${downloadProgress}%` }}></div></div></div>
+                                                        <div className="space-y-2 text-left"><div className="flex justify-between text-xs font-black text-indigo-400 uppercase tracking-widest text-left"><span>Downloading...</span><span>{downloadProgress}%</span></div><div className="w-full bg-white h-2 rounded-full overflow-hidden mt-1 shadow-inner"><div className="bg-indigo-600 h-full transition-all" style={{ width: `${downloadProgress}%` }}></div></div></div>
                                                     ) : (
                                                         <div className="flex gap-3 text-left"><button onClick={downloadAll} className="flex-1 bg-indigo-600 text-white text-xs py-3.5 rounded-xl font-black shadow-sm active:scale-95 transition-all uppercase tracking-tighter text-left">下載 MP3 離線包</button><button onClick={clearCache} className="bg-white border border-rose-200 text-rose-500 text-xs py-3.5 px-4 rounded-xl font-black active:scale-95 transition-all text-left">清除</button></div>
                                                     )}
@@ -521,7 +519,7 @@
                                 </div>
                                 <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(var(--safe-bottom)+0.5rem)] bg-gradient-to-t from-slate-50 dark-mode-bg to-transparent z-20 text-left">
                                     <div className="text-left">
-                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20 text-left"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest text-left">套用設定並進入 Lab</span></button>
+                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20 text-left"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest text-left">進入獨立實驗室</span></button>
                                     </div>
                                 </div>
                             </div>
