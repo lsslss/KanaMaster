@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v8.1-Lab (Isolated DB)</title>
+    <title>Kana Master v8.2-Lab (Visual Refined)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -21,7 +21,7 @@
             const manifest = {
                 "name": "Kana Master (Lab)",
                 "short_name": "KM Lab",
-                "id": absoluteUrl + "?dev_v2",
+                "id": absoluteUrl + "?dev_v8.2",
                 "start_url": absoluteUrl,
                 "display": "standalone",
                 "background_color": "#0f172a",
@@ -70,19 +70,25 @@
         .animate-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        ruby { display: inline-flex; flex-direction: column-reverse; align-items: center; vertical-align: bottom; margin: 0 1px; line-height: 1.25; }
-        ruby rt { display: block; font-size: 0.5em; color: #6366f1; font-weight: 800; text-align: center; padding-bottom: 0.1em; width: 100%; line-height: 1; transition: all 0.3s ease; }
+        /* --- 核心修正：Ruby 標準對齊 --- */
+        ruby { display: ruby; ruby-align: center; }
+        rt { 
+            display: ruby-text; 
+            font-size: 0.5em; 
+            color: #6366f1; 
+            font-weight: 800; 
+            line-height: 1.2;
+            padding-bottom: 0.15em;
+            text-align: center;
+        }
         
-        .large-font-mode ruby { line-height: 1.45; }
-        .large-font-mode ruby rt { font-size: 0.75em; padding-bottom: 0.05em; }
+        .large-font-mode rt { font-size: 0.65em; }
 
         .card-shadow { box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 5px 15px -5px rgba(0, 0, 0, 0.04); }
         :root { --safe-bottom: env(safe-area-inset-bottom, 20px); }
         body { background-color: #f8fafc; transition: background-color 0.5s ease; }
         @media (min-width: 768px) { body { background-color: #e2e8f0; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; } }
-        @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-        .animate-slide-down { animation: slide-down 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-
+        
         .dark-mode .dark-mode-bg { background-color: #0f172a !important; }
         .dark-mode .dark-mode-card { background-color: #1e293b !important; border-color: #334155 !important; }
         .dark-mode .dark-mode-text { color: #f1f5f9 !important; }
@@ -97,17 +103,16 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v8.1-Lab";
+        const APP_VERSION = "v8.2-Lab";
 
         const MANUAL_LESSON = [
-            { unit: "實驗室", category: "sentence", primary: "存儲[そんちょ]隔離[かくり]", reading: "そんちょかくり", meaning: "v8.1 建立專屬資料庫，避免與穩定版衝突", secondary: "完全[かんぜん]なる分離[ぶんり]", secondaryreading: "かんぜんなるぶんり", emoji: "🛡️", notes: "測試版的 IndexedDB 現在名為 KM_Lab_Audio_v1。" },
-            { unit: "實驗室", category: "sentence", primary: "MP3 編[へん]碼[こう]", reading: "えむぴーすりーへんこう", meaning: "全速下載體驗，檔案極小音質不減", secondary: "超高速[ちょうこうそく]", secondaryreading: "ちょうこうそく", emoji: "🚀", notes: "200 個單字僅佔用約 5MB 空間。" }
+            { unit: "實驗室", category: "sentence", primary: "對[つい]齊[けい]修[しゅう]正[せい]", reading: "ついきょうしゅうせい", meaning: "v8.2 完美修復 Ruby 標註與漢字對齊問題", secondary: "一[いち]對[つい]一[いち]標[ひょう]記[き]", secondaryreading: "いちたいいちひょうき", emoji: "📏", notes: "已捨棄 Flex 佈局，回歸標準 Ruby 渲染。" },
+            { unit: "實驗室", category: "sentence", primary: "字[じ]型[けい]縮[しゅく]放[ほう]", reading: "じけいしゅくほう", meaning: "根據字數自動調整大小，不再忽然跳大字", secondary: "階[かい]梯[てい]式[しき]縮[しゅく]放[ほう]", secondaryreading: "かいていしきしゅくほう", emoji: "🔍", notes: "短詞與長句現在都有最適合的視覺比例。" }
         ];
 
-        // --- 核心修改：資料庫完全隔離 ---
+        // --- IndexedDB ---
         const DB_NAME = "KM_Lab_Audio_v1"; 
         const STORE_NAME = "local_audio";
-        
         const initDB = () => new Promise((resolve) => {
             const request = indexedDB.open(DB_NAME, 1);
             request.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME); };
@@ -116,13 +121,30 @@
         const deleteStore = async () => { const db = await initDB(); const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).clear(); return new Promise(r => tx.oncomplete = r); };
         const getLocal = async (key) => { const db = await initDB(); return new Promise((r) => { const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(key); req.onsuccess = () => r(req.result); req.onerror = () => r(null); }); };
         const saveLocal = async (key, val) => { const db = await initDB(); db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(val, key); };
-        const countLocalItems = async () => { const db = await initDB(); return new Promise(r => { const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).count(); req.onsuccess = () => r(req.result); }); };
+        
+        const getStorageStats = async () => {
+            const db = await initDB();
+            return new Promise(r => {
+                const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).getAll();
+                req.onsuccess = () => {
+                    const count = req.result.length;
+                    let size = 0;
+                    req.result.forEach(base64 => {
+                        // 估算 Base64 原始大小 (byte)
+                        size += (base64.length * 0.75);
+                    });
+                    r({ count, size: (size / 1024 / 1024).toFixed(2) });
+                };
+            });
+        };
 
         const RubyText = ({ text, className = "" }) => {
             if (!text) return null;
+            // 修正 Regex 以支援一對一標記：漢[かん]字[じ]
             const parts = text.split(/([^[\]\s、。！？]+\[[^\]]+\])/g);
             return <span className={className}>{parts.map((p, i) => {
                 const m = p.match(/^([^\[]+)\[([^\]]+)\]$/);
+                // 使用原生 ruby 結構，不加額外的 flex container
                 return m ? <ruby key={i}>{m[1]}<rt>{m[2]}</rt></ruby> : <span key={i}>{p}</span>;
             })}</span>;
         };
@@ -139,12 +161,12 @@
             const [isFlipped, setIsFlipped] = useState(false);
             const [isSyncing, setIsSyncing] = useState(false);
             const [ttsStatus, setTtsStatus] = useState('Standby');
-            const [localCacheCount, setLocalCacheCount] = useState(0);
+            const [storageStats, setStorageStats] = useState({ count: 0, size: "0.00" });
             const [downloadProgress, setDownloadProgress] = useState(null);
             const [showUpdateToast, setShowUpdateToast] = useState(false);
-            const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
             
             const [isAutoplay, setIsAutoplay] = useState(false);
+            const [autoPlayTempo, setAutoPlayTempo] = useState(() => JSON.parse(localStorage.getItem('km_tempo_v82') ?? "5.0"));
             const autoplayTimerRef = useRef(null);
             const wakeLockRef = useRef(null);
 
@@ -160,16 +182,16 @@
             const [activeCourseId, setActiveCourseId] = useState(() => localStorage.getItem('km_lab_a') || 'builtin');
             const [useVibration, setUseVibration] = useState(() => JSON.parse(localStorage.getItem('km_vibrate_v61') ?? 'true'));
             const [themePreference, setThemePreference] = useState(() => localStorage.getItem('km_theme_v61') || 'system');
-
             const [autoDownload, setAutoDownload] = useState(() => JSON.parse(localStorage.getItem('km_auto_dl_v63') ?? 'true'));
-            const [isBgSyncing, setIsBgSyncing] = useState(false);
 
             const vibrate = (ms = 15) => { if (useVibration && navigator.vibrate) navigator.vibrate(ms); };
             const toggleSection = (key) => { vibrate(5); setOpenSections(prev => ({ ...prev, [key]: !prev[key] })); };
             const audioCache = useRef({}); 
             const fetchingRef = useRef(new Set());
 
-            useEffect(() => { countLocalItems().then(setLocalCacheCount); }, []);
+            const refreshStats = useCallback(() => getStorageStats().then(setStorageStats), []);
+            useEffect(() => { refreshStats(); }, [refreshStats]);
+
             useEffect(() => {
                 const handler = () => setShowUpdateToast(true);
                 window.addEventListener('pwa_update_available', handler);
@@ -216,7 +238,6 @@
 
             useEffect(() => {
                 if (cards.length === 0 && selectedUnits.length > 0 && availableUnits.length > 0) generatePracticeSet();
-                if (selectedUnits.length === 0 && availableUnits.length > 0) setSelectedUnits([availableUnits[0]]);
             }, [availableUnits, cards.length, selectedUnits.length, generatePracticeSet]);
 
             const fetchVoice = async (primary, secondary) => {
@@ -237,7 +258,7 @@
                     const result = await response.json();
                     if (result.data) {
                         setTtsStatus('HIT: LAB CLOUD');
-                        await saveLocal(text, result.data); countLocalItems().then(setLocalCacheCount);
+                        await saveLocal(text, result.data); refreshStats();
                         const audio = new Audio("data:audio/mpeg;base64," + result.data);
                         audioCache.current[text] = audio; return audio;
                     }
@@ -267,23 +288,47 @@
                         window.speechSynthesis.speak(main);
                     });
                 }
-            }, [gasUrl, speechRate]);
+            }, [gasUrl, speechRate, refreshStats]);
 
+            // --- 核心邏輯：自動播放重構 (v8.2) ---
             useEffect(() => {
                 if (!isAutoplay || cards.length === 0 || view !== 'practice') return;
-                const runCycle = async () => {
-                    await speak(cards[currentIndex]);
+                
+                const tempo = parseFloat(autoPlayTempo);
+                const frontStay = tempo * 0.3 * 1000;
+                const backStay = tempo * 0.7 * 1000;
+
+                const runAutoCycle = async () => {
+                    // 1. 如果有開聲音按鈕，才朗讀
+                    if (autoSpeak) await speak(cards[currentIndex]);
+                    
+                    // 2. 正面停留
                     autoplayTimerRef.current = setTimeout(() => {
-                        setIsFlipped(true);
+                        setIsFlipped(true); // 翻面
+                        // 3. 背面停留
                         autoplayTimerRef.current = setTimeout(() => {
-                            setIsFlipped(false);
-                            setCurrentIndex(prev => (prev + 1) % cards.length);
-                        }, 3000);
-                    }, 1000);
+                            setIsFlipped(false); // 翻回來
+                            setCurrentIndex(prev => (prev + 1) % cards.length); // 切換下一張
+                        }, backStay);
+                    }, frontStay);
                 };
-                runCycle();
+
+                runAutoCycle();
                 return () => clearTimeout(autoplayTimerRef.current);
-            }, [isAutoplay, currentIndex, cards, view, speak]);
+            }, [isAutoplay, currentIndex, cards, view, speak, autoSpeak, autoPlayTempo]);
+
+            // --- 核心修正：動態字級計算 (v8.2) ---
+            const getDynamicFontSize = useCallback((text) => {
+                if (!text) return '';
+                // 排除 Ruby 標註，只算基底字數
+                const baseText = text.replace(/\[[^\]]+\]/g, '');
+                const len = baseText.length;
+                
+                if (len <= 2) return isLargeFont ? 'text-[10rem]' : 'text-[8rem]';
+                if (len <= 5) return isLargeFont ? 'text-[6rem]' : 'text-[5rem]';
+                if (len <= 8) return isLargeFont ? 'text-[4.5rem]' : 'text-[3.5rem]';
+                return isLargeFont ? 'text-[3.5rem]' : 'text-[2.5rem]';
+            }, [isLargeFont]);
 
             const performParallelDownload = async (items, onProgress) => {
                 if (!gasUrl) return;
@@ -303,7 +348,7 @@
                     }
                 };
                 await Promise.all(Array(Math.min(CONCURRENCY_LIMIT, taskTexts.length)).fill(null).map(() => worker()));
-                countLocalItems().then(setLocalCacheCount);
+                refreshStats();
             };
 
             const downloadAll = async () => {
@@ -312,23 +357,8 @@
                 setTimeout(() => { setDownloadProgress(null); vibrate(50); }, 2000);
             };
 
-            useEffect(() => {
-                const checkAndSync = async () => {
-                    if (view !== 'practice' || !autoDownload || !gasUrl || cards.length === 0 || isBgSyncing) return;
-                    setIsBgSyncing(true);
-                    await performParallelDownload(cards, () => {});
-                    setIsBgSyncing(false);
-                };
-                checkAndSync();
-            }, [view, cards, autoDownload, gasUrl]);
-
-            const clearCache = async () => { if (confirm('確定要清空 Lab 專屬 MP3 快取嗎？(不影響穩定版)')) { vibrate(50); await deleteStore(); audioCache.current = {}; countLocalItems().then(setLocalCacheCount); } };
-            const factoryReset = async () => { if (confirm('⚠️ 實驗室警告：重設所有測試資料？')) { vibrate(100); localStorage.clear(); await deleteStore(); window.location.reload(); } };
-            const checkUpdateManually = async () => {
-                if (!window.swRegistration) return alert('SW 尚未就緒');
-                setIsCheckingUpdate(true); vibrate(10);
-                try { await window.swRegistration.update(); setTimeout(() => { setIsCheckingUpdate(false); if (!showUpdateToast) alert('已是最新 Lab 版本！'); }, 1500); } catch (e) { setIsCheckingUpdate(false); alert('檢查失敗'); }
-            };
+            const clearCache = async () => { if (confirm('確定要清空 Lab 專屬 MP3 快取嗎？')) { vibrate(50); await deleteStore(); audioCache.current = {}; refreshStats(); } };
+            const factoryReset = async () => { if (confirm('⚠️ 警告：重設所有測試資料？')) { vibrate(100); localStorage.clear(); await deleteStore(); window.location.reload(); } };
 
             useEffect(() => {
                 localStorage.setItem('km_lab_gas', gasUrl);
@@ -342,7 +372,8 @@
                 localStorage.setItem('km_vibrate_v61', JSON.stringify(useVibration));
                 localStorage.setItem('km_theme_v61', themePreference);
                 localStorage.setItem('km_auto_dl_v63', JSON.stringify(autoDownload));
-            }, [gasUrl, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId, useVibration, themePreference, autoDownload]);
+                localStorage.setItem('km_tempo_v82', JSON.stringify(autoPlayTempo));
+            }, [gasUrl, isLargeFont, selectedUnits, practiceMode, autoSpeak, speechRate, cloudCourses, activeCourseId, useVibration, themePreference, autoDownload, autoPlayTempo]);
 
             const currentCard = useMemo(() => cards[currentIndex] || {}, [cards, currentIndex]);
             const themePrimary = practiceMode === 'random' ? 'amber' : 'indigo';
@@ -365,7 +396,7 @@
                     {showUpdateToast && (
                         <div className="absolute top-0 left-0 right-0 z-50 p-3 bg-slate-900 text-white flex items-center justify-between animate-slide-down shadow-xl">
                             <div className="flex items-center gap-3 ml-2"><Icon name="sparkles" size={18} className="text-amber-400" /><span className="text-xs font-bold tracking-wide">實驗室新代碼就緒！</span></div>
-                            <button onClick={() => { vibrate(30); window.location.reload(true); }} className="bg-indigo-600 px-4 py-1.5 rounded-full text-xs font-black uppercase shadow-lg text-[10px]">Reload</button>
+                            <button onClick={() => { vibrate(30); window.location.reload(true); }} className="bg-indigo-600 px-4 py-1.5 rounded-full text-xs font-black shadow-lg text-[10px]">Reload</button>
                         </div>
                     )}
 
@@ -374,7 +405,6 @@
                             <div className="flex items-center gap-1.5 text-left">
                                 <h1 className={`text-sm md:text-base font-black text-${themePrimary}-600 leading-none`}>KM Lab</h1>
                                 <span className="text-[10px] font-black bg-indigo-50 dark-mode-secondary text-indigo-400 px-1.5 py-0.5 rounded leading-tight uppercase">{APP_VERSION}</span>
-                                {isBgSyncing && <Icon name="refresh-ccw" size={10} className="text-indigo-400 animate-spin ml-0.5" />}
                             </div>
                             <span className="text-[11px] text-slate-400 font-black uppercase mt-0.5 truncate max-w-[80px] text-left">{activeCourseId === 'builtin' ? 'Dev Guide' : activeCourseId}</span>
                         </div>
@@ -414,7 +444,7 @@
                                                 </div>
                                                 <div className="flex-1 flex flex-col items-center justify-around py-10 px-6 text-center">
                                                     <div className="flex-1 flex items-center justify-center w-full">
-                                                        <RubyText text={currentCard.primary} className={`${(currentCard.primary || '').length > 6 ? (isLargeFont ? 'text-5xl' : 'text-4xl') : (isLargeFont ? 'text-[10rem]' : 'text-[8rem]')} font-black text-slate-800 dark-mode-text transition-all break-words leading-none`} />
+                                                        <RubyText text={currentCard.primary} className={`${getDynamicFontSize(currentCard.primary)} font-black text-slate-800 dark-mode-text transition-all break-words leading-none`} />
                                                     </div>
                                                     {currentCard.secondary && (
                                                         <div className="bg-indigo-50/50 dark-mode-secondary px-8 py-5 rounded-[2.5rem] border border-indigo-100/30 w-full flex items-center justify-center min-h-[5rem]">
@@ -442,7 +472,7 @@
                                                             {currentCard.notes && <div className={`${isLargeFont ? 'text-base' : 'text-sm'} bg-slate-50 dark-mode-secondary p-5 rounded-3xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
                                                             <div className="bg-rose-50/30 p-3 rounded-2xl border border-rose-100/20 flex justify-between items-center">
                                                                 <div className="flex flex-col text-left">
-                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider text-left">LAB DB (Isolated)</p>
+                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider text-left">LAB ENGINE (MP3)</p>
                                                                     <p className="text-xs font-mono text-rose-500/50 truncate tracking-tight text-left">{currentCard.reading} {currentCard.secondaryreading}</p>
                                                                 </div>
                                                                 <span className="bg-emerald-500 text-white px-2.5 py-1 rounded-full font-black text-[10px] uppercase shadow-sm">{ttsStatus}</span>
@@ -470,19 +500,20 @@
                             <div className="h-full flex flex-col overflow-hidden text-left">
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 animate-in slide-in-from-bottom-4 duration-500 pb-40 text-left">
                                     <section className="bg-white dark-mode-card p-5 rounded-[2.5rem] shadow-lg space-y-4 text-left">
-                                        <div className="flex justify-between items-center text-left"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2 text-left"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button onClick={checkUpdateManually} disabled={isCheckingUpdate} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase transition-all ${isCheckingUpdate ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 dark-mode-secondary text-indigo-500'}`}><Icon name={isCheckingUpdate ? "loader-2" : "refresh-ccw"} size={12} className={isCheckingUpdate ? "animate-spin" : ""} />{isCheckingUpdate ? 'Checking...' : `Ver ${APP_VERSION}`}</button></div>
+                                        <div className="flex justify-between items-center text-left"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button className="bg-indigo-50 dark-mode-secondary text-indigo-500 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">v8.2</button></div>
                                         <div className="space-y-1.5 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇 Lab 課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 實驗室手冊</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
                                         <div className="space-y-2 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-2.5">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3 px-2 rounded-xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">Isolated Lab Mode</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{speechRate}x / {isLargeFont?'大字':'標字'} / 節奏:{autoPlayTempo}s</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.pref && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
-                                                <div className="pt-2 space-y-4 text-left">
-                                                    <div className="flex justify-between items-center text-left"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase text-left">發音速度: {speechRate}x</span><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-1/2 accent-indigo-600 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
-                                                    <div className="border-t border-slate-100 dark-mode-border pt-4 space-y-4 text-left">
-                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50 transition-all active:scale-[0.98] text-left"><div className="flex flex-col text-left"><span className="text-sm font-bold text-indigo-700 dark-mode-text leading-snug font-black text-left">大字版面模式</span><span className="text-[10px] text-indigo-400 text-left uppercase font-black font-mono">LAB ENHANCED</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(20); setIsLargeFont(e.target.checked); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
+                                                <div className="pt-2 space-y-6 text-left">
+                                                    <div className="space-y-2"><div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">發音速度: {speechRate}x</span></div><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-full accent-indigo-600 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
+                                                    <div className="space-y-2 border-t border-slate-100 pt-4"><div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">自動巡迴節奏: {autoPlayTempo}s</span></div><input type="range" min="3" max="12" step="0.5" value={autoPlayTempo} onChange={(e) => setAutoPlayTempo(parseFloat(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /><p className="text-[9px] text-slate-400 font-bold uppercase mt-1">決定正背面切換的速度</p></div>
+                                                    <div className="border-t border-slate-100 dark-mode-border pt-4 space-y-4">
+                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50 transition-all active:scale-[0.98]"><div className="flex flex-col"><span className="text-sm font-bold text-indigo-700 dark-mode-text font-black">大字版面模式</span><span className="text-[10px] text-indigo-400 uppercase font-black font-mono tracking-tighter">DYNAMIC FONT SCALING</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(20); setIsLargeFont(e.target.checked); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -490,20 +521,20 @@
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-xs text-slate-400 font-bold mt-1 tracking-tight text-left">Dev GAS Required</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">{gasUrl ? 'CONNECTED' : 'SETUP REQUIRED'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.sync && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 space-y-4 text-left">
                                                     <input type="text" placeholder="貼上 Dev GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-xs font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
                                                     <button onClick={syncFromCloud} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-xl bg-slate-800 text-white font-black text-sm active:scale-95 transition-all shadow-lg ${isSyncing ? 'opacity-50' : ''}`}>從 Lab 環境同步課程</button>
-                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors py-2 text-left"><Icon name="trash-2" size={14} /> 重設測試資料 (Factory Reset)</button></div>
+                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors py-2"><Icon name="trash-2" size={14} /> 重設測試資料 (Factory Reset)</button></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left last-node">
-                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="database" size={18} className="text-rose-500" /> 資源 (Lab 專屬)</h3><p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-tight text-left">{localCacheCount} Files Cached</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="database" size={18} className="text-rose-500" /> 語音資源</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{storageStats.count} FILES / {storageStats.size} MB</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.voice && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-5 rounded-2xl space-y-4 text-left">
@@ -519,7 +550,7 @@
                                 </div>
                                 <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(var(--safe-bottom)+0.5rem)] bg-gradient-to-t from-slate-50 dark-mode-bg to-transparent z-20 text-left">
                                     <div className="text-left">
-                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20 text-left"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest text-left">進入獨立實驗室</span></button>
+                                        <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20 text-left"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest text-left">儲存設定並返回</span></button>
                                     </div>
                                 </div>
                             </div>
