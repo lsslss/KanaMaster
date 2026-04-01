@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#4f46e5">
-    <title>Kana Master v8.5-Lab (Feature Restored)</title>
+    <title>Kana Master v8.6-Lab (Logic Refined)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -21,7 +21,7 @@
             const manifest = {
                 "name": "Kana Master (Lab)",
                 "short_name": "KM Lab",
-                "id": absoluteUrl + "?dev_v8.5",
+                "id": absoluteUrl + "?dev_v8.6",
                 "start_url": absoluteUrl,
                 "display": "standalone",
                 "background_color": "#0f172a",
@@ -43,9 +43,7 @@
                 window.addEventListener('load', () => {
                     const isSupportedProtocol = ['http:', 'https:'].includes(location.protocol) || location.hostname === 'localhost';
                     if (isSupportedProtocol) {
-                        navigator.serviceWorker.register('sw.js').then(reg => {
-                            window.swRegistration = reg;
-                        });
+                        navigator.serviceWorker.register('sw.js').then(reg => { window.swRegistration = reg; });
                     }
                 });
             }
@@ -63,13 +61,8 @@
         
         ruby { display: ruby; ruby-align: center; }
         rt { 
-            display: ruby-text; 
-            font-size: 0.5em; 
-            color: #6366f1; 
-            font-weight: 800; 
-            line-height: 1.2;
-            padding-bottom: 0.15em;
-            text-align: center;
+            display: ruby-text; font-size: 0.5em; color: #6366f1; font-weight: 800; 
+            line-height: 1.2; padding-bottom: 0.15em; text-align: center;
         }
         .large-font-mode rt { font-size: 0.65em; }
 
@@ -92,11 +85,10 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        const APP_VERSION = "v8.5-Lab";
+        const APP_VERSION = "v8.6-Lab";
 
         const MANUAL_LESSON = [
-            { unit: "系統", category: "sentence", primary: "佈[ふ]景[けい]再[さい]現[げん]", reading: "ふけいさいげん", meaning: "v8.5 恢復佈景主題、震動與清除功能", secondary: "完[かん]全[ぜん]なる復[ふっ]活[かつ]", secondaryreading: "かんぜんなるふっかつ", emoji: "🎨", notes: "實驗室模式的功能現在已全面補齊。" },
-            { unit: "視覺", category: "sentence", primary: "比[ひ]率[りつ]調[ちょう]整[せい]", reading: "ひりつちょうせい", meaning: "更穩定的字體縮放，短詞不再突兀", secondary: "最[さい]適[てき]な視[し]覚[かく]", secondaryreading: "さいてきなしかく", emoji: "⚖️", notes: "1-5 字級距縮減，維持視覺平衡。" }
+            { unit: "系統", category: "sentence", primary: "轉[てん]譯[やく]修[しゅう]正[せい]", reading: "てんやくしゅうせい", meaning: "v8.6 修正了 Ruby 標籤錯誤吸入假名的問題", secondary: "私[わたし]は醫[い]者[しゃ]です", secondaryreading: "わたしはいしゃです", emoji: "🛠️", notes: "已更換精準匹配正則表達式，確保讀音不位移。" }
         ];
 
         // --- IndexedDB ---
@@ -107,7 +99,6 @@
             request.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(STORE_NAME)) e.target.result.createObjectStore(STORE_NAME); };
             request.onsuccess = (e) => resolve(e.target.result);
         });
-        const deleteStore = async () => { const db = await initDB(); const tx = db.transaction(STORE_NAME, "readwrite"); tx.objectStore(STORE_NAME).clear(); return new Promise(r => tx.oncomplete = r); };
         const getLocal = async (key) => { const db = await initDB(); return new Promise((r) => { const req = db.transaction(STORE_NAME).objectStore(STORE_NAME).get(key); req.onsuccess = () => r(req.result); req.onerror = () => r(null); }); };
         const saveLocal = async (key, val) => { const db = await initDB(); db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(val, key); };
         
@@ -124,11 +115,16 @@
             });
         };
 
+        // --- 核心 Bug 修復：RubyText 解析邏輯 ---
         const RubyText = ({ text, className = "" }) => {
             if (!text) return null;
-            const parts = text.split(/([^[\]\s、。！？]+\[[^\]]+\])/g);
-            return <span className={className}>{parts.map((p, i) => {
-                const m = p.match(/^([^\[]+)\[([^\]]+)\]$/);
+            /** * 修正後的 Regex：([^\[\]]\[[^\]]+\])
+             * 1. 只抓取括號 [ 前方的「一個字」作為基底。
+             * 2. 使用 filter(Boolean) 移除 split 產生的空字串，避免產生無效的 <span></span>。
+             */
+            const parts = text.split(/([^\[\]]\[[^\]]+\])/g);
+            return <span className={className}>{parts.filter(Boolean).map((p, i) => {
+                const m = p.match(/^([^\[])\[([^\]]+)\]$/);
                 return m ? <ruby key={i}>{m[1]}<rt>{m[2]}</rt></ruby> : <span key={i}>{p}</span>;
             })}</span>;
         };
@@ -320,15 +316,7 @@
                 if (view === 'practice' && cards.length > 0) performParallelDownload(cards);
             }, [cards, view, gasUrl]);
 
-            const clearCache = async () => { 
-                if (confirm('確定要清空 Lab 專屬 MP3 快取嗎？(不影響穩定版)')) { 
-                    vibrate(50); 
-                    await deleteStore(); 
-                    audioCache.current = {}; 
-                    refreshStats(); 
-                } 
-            };
-
+            const clearCache = async () => { if (confirm('確定要清空 Lab MP3 快取嗎？')) { vibrate(50); await deleteStore(); audioCache.current = {}; refreshStats(); } };
             const factoryReset = async () => { if (confirm('⚠️ 警告：重設所有測試資料？')) { vibrate(100); localStorage.clear(); await deleteStore(); window.location.reload(); } };
 
             useEffect(() => {
@@ -373,7 +361,7 @@
 
                     <main className="flex-1 min-h-0 relative flex flex-col bg-slate-50 dark-mode-bg">
                         {view === 'practice' && (
-                            <div className="h-full flex flex-col overflow-hidden text-left relative">
+                            <div className="h-full flex flex-col overflow-hidden text-left relative text-left">
                                 <div className="shrink-0 p-4 pt-6">
                                     <div className="w-full flex items-center gap-3 px-1 max-w-sm mx-auto">
                                         <span className="text-xs font-black text-slate-400 dark-mode-text uppercase tracking-wider shrink-0">{currentCard.unit}</span>
@@ -384,7 +372,7 @@
                                     </div>
                                 </div>
 
-                                <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+                                <div className="flex-1 flex items-center justify-center p-4 min-h-0 text-left">
                                     {cards.length > 0 ? (
                                         <div className={`relative w-full max-w-sm h-full max-h-[700px] perspective-1000 cursor-pointer transform-style-3d transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''}`} onClick={() => { vibrate(5); setIsFlipped(!isFlipped); }}>
                                             <div className={`absolute inset-0 bg-white dark-mode-card rounded-[3rem] card-shadow flex flex-col overflow-hidden backface-hidden border border-slate-100 ${isFlipped ? 'hidden' : 'flex'}`}>
@@ -392,13 +380,13 @@
                                                     <span className={`${isLargeFont ? 'text-9xl' : 'text-8xl'} animate-bounce-slow`}>{currentCard.emoji}</span>
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="absolute top-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg active:scale-90"><Icon name="volume-2" size={24}/></button>
                                                 </div>
-                                                <div className="flex-1 flex flex-col items-center justify-around py-10 px-6 text-center">
-                                                    <div className="flex-1 flex items-center justify-center w-full">
-                                                        <RubyText text={currentCard.primary} className={`${getDynamicFontSize(currentCard.primary)} font-black text-slate-800 dark-mode-text transition-all break-words leading-none`} />
+                                                <div className="flex-1 flex flex-col items-center justify-around py-10 px-6 text-center text-left">
+                                                    <div className="flex-1 flex items-center justify-center w-full text-left">
+                                                        <RubyText text={currentCard.primary} className={`${getDynamicFontSize(currentCard.primary)} font-black text-slate-800 dark-mode-text transition-all break-words leading-none text-left`} />
                                                     </div>
                                                     {currentCard.secondary && (
-                                                        <div className="bg-indigo-50/50 dark-mode-secondary px-8 py-5 rounded-[2.5rem] border border-indigo-100/30 w-full flex items-center justify-center min-h-[5rem]">
-                                                            <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic leading-tight`} />
+                                                        <div className="bg-indigo-50/50 dark-mode-secondary px-8 py-5 rounded-[2.5rem] border border-indigo-100/30 w-full flex items-center justify-center min-h-[5rem] text-left">
+                                                            <RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-3xl' : 'text-2xl'} text-indigo-600 font-bold italic leading-tight text-left`} />
                                                         </div>
                                                     )}
                                                 </div>
@@ -410,17 +398,17 @@
                                                     <button onClick={(e) => { vibrate(20); e.stopPropagation(); speak(currentCard); }} className="text-indigo-600 p-2 active:scale-90"><Icon name="volume-2" size={24}/></button>
                                                 </div>
                                                 <div className="flex-1 flex flex-col p-8 text-center justify-around overflow-hidden text-left">
-                                                    <div className="space-y-2">
-                                                        <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em]">Translation</p>
-                                                        <h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight`}>{currentCard.meaning}</h3>
+                                                    <div className="space-y-2 text-left">
+                                                        <p className="text-xs font-black text-slate-300 uppercase tracking-[0.2em] text-left">Translation</p>
+                                                        <h3 className={`${isLargeFont ? 'text-5xl' : 'text-4xl'} font-black text-indigo-600 leading-tight text-left`}>{currentCard.meaning}</h3>
                                                     </div>
-                                                    <div className="space-y-6">
-                                                        {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-6 rounded-[2.5rem] w-full flex items-center justify-center min-h-[7rem]"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} text-slate-700 dark-mode-text font-bold leading-snug`} /></div>}
-                                                        <div className="w-full text-left space-y-3">
-                                                            {currentCard.notes && <div className={`${isLargeFont ? 'text-base' : 'text-sm'} bg-slate-50 dark-mode-secondary p-5 rounded-3xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed`}>{currentCard.notes}</div>}
-                                                            <div className="bg-rose-50/30 p-3 rounded-2xl border border-rose-100/20 flex justify-between items-center">
+                                                    <div className="space-y-6 text-left">
+                                                        {currentCard.secondary && <div className="bg-indigo-50/40 dark-mode-secondary p-6 rounded-[2.5rem] w-full flex items-center justify-center min-h-[7rem] text-left"><RubyText text={currentCard.secondary} className={`${isLargeFont ? 'text-4xl' : 'text-3xl'} text-slate-700 dark-mode-text font-bold leading-snug text-left`} /></div>}
+                                                        <div className="w-full text-left space-y-3 text-left">
+                                                            {currentCard.notes && <div className={`${isLargeFont ? 'text-base' : 'text-sm'} bg-slate-50 dark-mode-secondary p-5 rounded-3xl border border-slate-100 dark-mode-card text-slate-500 font-bold leading-relaxed text-left`}>{currentCard.notes}</div>}
+                                                            <div className="bg-rose-50/30 p-3 rounded-2xl border border-rose-100/20 flex justify-between items-center text-left">
                                                                 <div className="flex flex-col text-left">
-                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider">LAB DB (Isolated)</p>
+                                                                    <p className="text-[9px] font-black text-rose-400 uppercase tracking-wider text-left">LAB ENGINE (v8.6 Fix)</p>
                                                                     <p className="text-xs font-mono text-rose-500/50 truncate tracking-tight text-left">{currentCard.reading}</p>
                                                                 </div>
                                                                 <span className="bg-emerald-500 text-white px-2.5 py-1 rounded-full font-black text-[10px] uppercase shadow-sm">{ttsStatus}</span>
@@ -448,27 +436,22 @@
                             <div className="h-full flex flex-col overflow-hidden text-left">
                                 <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 animate-in slide-in-from-bottom-4 duration-500 pb-40 text-left">
                                     <section className="bg-white dark-mode-card p-5 rounded-[2.5rem] shadow-lg space-y-4 text-left">
-                                        <div className="flex justify-between items-center"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button className="bg-indigo-50 dark-mode-secondary text-indigo-500 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">{APP_VERSION}</button></div>
-                                        <div className="space-y-1.5"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 實驗室指南</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
-                                        <div className="space-y-2"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-2.5">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3 px-2 rounded-xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
+                                        <div className="flex justify-between items-center text-left"><h2 className="text-sm md:text-base font-black text-slate-700 dark-mode-text uppercase tracking-widest flex items-center gap-2 text-left"><Icon name="beaker" size={18} className="text-indigo-600" /> Lab 範圍</h2><button className="bg-indigo-50 dark-mode-secondary text-indigo-500 px-3 py-1.5 rounded-full text-[10px] font-black uppercase">{APP_VERSION}</button></div>
+                                        <div className="space-y-1.5 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇課程</label><select value={activeCourseId} onChange={(e) => { vibrate(10); setActiveCourseId(e.target.value); setSelectedUnits([]); }} className="w-full p-3.5 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-sm font-bold border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500"><option value="builtin">💡 實驗室指南</option>{Object.keys(cloudCourses).map(n => <option key={n} value={n}>{n}</option>)}</select></div>
+                                        <div className="space-y-2 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">選擇單元 ({selectedUnits.length}/{availableUnits.length})</label><div className="grid grid-cols-2 gap-2.5">{availableUnits.map(u => (<button key={u} onClick={() => { vibrate(5); setSelectedUnits(prev => prev.includes(u) ? prev.filter(x => x !== u) : [...prev, u]); }} className={`py-3 px-2 rounded-xl text-xs font-black border transition-all ${selectedUnits.includes(u) ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark-mode-card dark-mode-text dark-mode-border border-slate-100'}`}>{u}</button>))}</div></div>
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{speechRate}x / {themePreference} / {useVibration?'震動開':'關'}</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('pref')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="sliders" size={18} className="text-amber-500" /> 偏好設定</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{speechRate}x / {themePreference} / {useVibration?'震動開':'關'}</p></div><Icon name={openSections.pref ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.pref && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
                                                 <div className="pt-2 space-y-6 text-left">
-                                                    <div className="space-y-2"><div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">發音速度: {speechRate}x</span></div><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-full accent-indigo-600 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
-                                                    <div className="space-y-2 border-t border-slate-100 pt-4"><div className="flex justify-between items-center"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase">自動巡迴節奏: {autoPlayTempo}s</span></div><input type="range" min="3" max="12" step="0.5" value={autoPlayTempo} onChange={(e) => setAutoPlayTempo(parseFloat(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
-                                                    
-                                                    {/* 恢復佈景主題選項 */}
-                                                    <div className="space-y-1.5 border-t border-slate-100 pt-4"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">外觀主題</label><div className="flex bg-slate-100 dark-mode-secondary p-1 rounded-xl gap-1.5">{['light', 'dark', 'system'].map(m => (<button key={m} onClick={() => { vibrate(5); setThemePreference(m); }} className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${themePreference === m ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>{m === 'light' ? '淺色' : m === 'dark' ? '深色' : '系統'}</button>))}</div></div>
-
-                                                    <div className="border-t border-slate-100 dark-mode-border pt-4 space-y-4">
-                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50 transition-all active:scale-[0.98]"><div className="flex flex-col"><span className="text-sm font-bold text-indigo-700 dark-mode-text font-black">大字版面模式</span><span className="text-[10px] text-indigo-400 uppercase font-black font-mono tracking-tighter">SCALE REFINED</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(20); setIsLargeFont(e.target.checked); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
-                                                        
-                                                        {/* 恢復震動開關 */}
-                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-slate-50 dark-mode-secondary rounded-xl border border-slate-100/50 transition-all active:scale-[0.98]"><div className="flex flex-col"><span className="text-sm font-bold text-slate-600 dark-mode-text font-black">啟用觸感回饋</span><span className="text-[10px] text-slate-400 uppercase font-black font-mono tracking-tighter">HAPTIC VIBRATION</span></div><input type="checkbox" checked={useVibration} onChange={(e) => { setUseVibration(e.target.checked); if(e.target.checked) vibrate(20); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
+                                                    <div className="space-y-2 text-left"><div className="flex justify-between items-center text-left"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase text-left">發音速度: {speechRate}x</span></div><input type="range" min="0.5" max="1.5" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(parseFloat(e.target.value))} className="w-full accent-indigo-600 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
+                                                    <div className="space-y-2 border-t border-slate-100 pt-4 text-left"><div className="flex justify-between items-center text-left"><span className="text-xs font-black text-slate-500 dark-mode-text uppercase text-left">自動巡迴節奏: {autoPlayTempo}s</span></div><input type="range" min="3" max="12" step="0.5" value={autoPlayTempo} onChange={(e) => setAutoPlayTempo(parseFloat(e.target.value))} className="w-full accent-rose-500 h-1.5 bg-slate-100 dark-mode-secondary rounded-lg appearance-none cursor-pointer" /></div>
+                                                    <div className="space-y-1.5 border-t border-slate-100 pt-4 text-left"><label className="text-xs font-black text-slate-400 dark-mode-text uppercase ml-1">外觀主題</label><div className="flex bg-slate-100 dark-mode-secondary p-1 rounded-xl gap-1.5">{['light', 'dark', 'system'].map(m => (<button key={m} onClick={() => { vibrate(5); setThemePreference(m); }} className={`flex-1 py-2.5 rounded-lg text-xs font-black transition-all ${themePreference === m ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-400'}`}>{m === 'light' ? '淺色' : m === 'dark' ? '深色' : '系統'}</button>))}</div></div>
+                                                    <div className="border-t border-slate-100 dark-mode-border pt-4 space-y-4 text-left">
+                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-indigo-50/50 dark-mode-secondary rounded-xl border border-indigo-100/50 transition-all active:scale-[0.98] text-left"><div className="flex flex-col text-left"><span className="text-sm font-bold text-indigo-700 dark-mode-text font-black text-left">大字版面模式</span><span className="text-[10px] text-indigo-400 uppercase font-black font-mono tracking-tighter text-left">LOGIC V8.6</span></div><input type="checkbox" checked={isLargeFont} onChange={(e) => { vibrate(20); setIsLargeFont(e.target.checked); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
+                                                        <label className="flex items-center justify-between cursor-pointer p-4 bg-slate-50 dark-mode-secondary rounded-xl border border-slate-100/50 transition-all active:scale-[0.98] text-left"><div className="flex flex-col text-left"><span className="text-sm font-bold text-slate-600 dark-mode-text font-black text-left">啟用觸感回饋</span><span className="text-[10px] text-slate-400 uppercase font-black font-mono tracking-tighter text-left">HAPTIC ON</span></div><input type="checkbox" checked={useVibration} onChange={(e) => { setUseVibration(e.target.checked); if(e.target.checked) vibrate(20); }} className="w-6 h-6 rounded-md accent-indigo-600" /></label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -476,10 +459,10 @@
                                     </section>
 
                                     <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
-                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">{gasUrl ? 'CONNECTED' : 'SETUP REQUIRED'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                        <button onClick={() => toggleSection('sync')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left text-left"><div className="text-left text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="refresh-cw" size={18} className="text-emerald-500" /> Lab 連線</h3><p className="text-[10px] text-slate-400 font-bold mt-1 tracking-tight">{gasUrl ? 'CONNECTED' : 'SETUP REQUIRED'}</p></div><Icon name={openSections.sync ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.sync && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
-                                                <div className="pt-2 space-y-4">
+                                                <div className="pt-2 space-y-4 text-left">
                                                     <input type="text" placeholder="貼上 Dev GAS URL" value={gasUrl} onChange={(e) => setGasUrl(e.target.value)} className="w-full p-4 bg-slate-50 dark-mode-secondary dark-mode-text rounded-xl text-xs font-mono border-none outline-none ring-1 ring-slate-100 focus:ring-indigo-500" />
                                                     <button onClick={() => {
                                                         if (!gasUrl) return;
@@ -490,26 +473,24 @@
                                                             .catch(() => alert('同步失敗'))
                                                             .finally(() => setIsSyncing(false));
                                                     }} disabled={!gasUrl || isSyncing} className={`w-full py-4 rounded-xl bg-slate-800 text-white font-black text-sm active:scale-95 transition-all shadow-lg ${isSyncing ? 'opacity-50' : ''}`}>從 Lab 環境同步課程</button>
-                                                    <div className="pt-2 border-t border-slate-100 dark-mode-border"><button onClick={factoryReset} className="text-rose-400 text-xs font-black uppercase flex items-center gap-1 hover:text-rose-600 transition-colors py-2"><Icon name="trash-2" size={14} /> 重設測試資料 (Factory Reset)</button></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
 
-                                    <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left last-node">
-                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left"><div className="text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2"><Icon name="database" size={18} className="text-rose-500" /> 語音資源</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{storageStats.count} FILES / {storageStats.size} MB</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
+                                    <section className="bg-white dark-mode-card rounded-[1.5rem] shadow-md overflow-hidden border border-slate-50 transition-all text-left">
+                                        <button onClick={() => toggleSection('voice')} className="w-full p-5 flex justify-between items-center active:bg-slate-50 transition-colors text-left text-left"><div className="text-left text-left text-left"><h3 className="text-sm md:text-base font-black text-slate-700 dark-mode-text flex items-center gap-2 text-left"><Icon name="database" size={18} className="text-rose-500" /> 語音資源</h3><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tight">{storageStats.count} FILES / {storageStats.size} MB</p></div><Icon name={openSections.voice ? "chevron-up" : "chevron-down"} size={20} className="text-slate-300" /></button>
                                         {openSections.voice && (
                                             <div className="px-5 pb-6 space-y-5 animate-in slide-in-from-top-2 text-left">
-                                                <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-5 rounded-2xl space-y-4">
-                                                    {/* 恢復清除語言包按鈕 */}
-                                                    <div className="flex gap-3"><button onClick={() => { vibrate(30); performParallelDownload(currentLessonItems); }} className="flex-1 bg-indigo-600 text-white text-xs py-3.5 rounded-xl font-black shadow-sm active:scale-95 transition-all uppercase tracking-tighter">下載 MP3 離線包</button><button onClick={clearCache} className="bg-white border border-rose-200 text-rose-500 text-xs py-3.5 px-4 rounded-xl font-black active:scale-95 transition-all">清除</button></div>
+                                                <div className="pt-2 bg-indigo-50/50 dark-mode-secondary p-5 rounded-2xl space-y-4 text-left">
+                                                    <div className="flex gap-3 text-left"><button onClick={() => { vibrate(30); performParallelDownload(currentLessonItems); }} className="flex-1 bg-indigo-600 text-white text-xs py-3.5 rounded-xl font-black shadow-sm active:scale-95 transition-all uppercase tracking-tighter text-left">下載 MP3 離線包</button><button onClick={clearCache} className="bg-white border border-rose-200 text-rose-500 text-xs py-3.5 px-4 rounded-xl font-black active:scale-95 transition-all text-left">清除</button></div>
                                                 </div>
                                             </div>
                                         )}
                                     </section>
                                 </div>
                                 <div className="absolute bottom-0 left-0 right-0 p-4 pb-[calc(var(--safe-bottom)+0.5rem)] bg-gradient-to-t from-slate-50 dark-mode-bg to-transparent z-20 text-left">
-                                    <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest">儲存設定並返回</span></button>
+                                    <button onClick={() => generatePracticeSet()} className="bg-slate-900 text-white w-full py-5 rounded-full font-black shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all border-2 border-white/20 text-left text-left"><Icon name="check-circle" size={20} /><span className="text-sm md:text-base font-black uppercase tracking-widest text-left">儲存設定並返回</span></button>
                                 </div>
                             </div>
                         )}
